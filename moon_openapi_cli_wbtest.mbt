@@ -205,6 +205,164 @@ fn encoded_ref_openapi() -> String {
 }
 
 ///|
+fn swagger2_openapi() -> String {
+  (
+    #|{
+    #|  "swagger": "2.0",
+    #|  "info": { "title": "Petstore", "version": "1.0.0" },
+    #|  "consumes": ["application/json"],
+    #|  "produces": ["application/json"],
+    #|  "paths": {
+    #|    "/pets": {
+    #|      "get": {
+    #|        "operationId": "listPets",
+    #|        "summary": "List pets",
+    #|        "tags": ["pets"],
+    #|        "responses": {
+    #|          "200": {
+    #|            "description": "ok",
+    #|            "schema": {
+    #|              "type": "array",
+    #|              "items": { "$ref": "#/definitions/Pet" }
+    #|            }
+    #|          }
+    #|        }
+    #|      },
+    #|      "post": {
+    #|        "operationId": "addPet",
+    #|        "summary": "Add a pet",
+    #|        "tags": ["pets"],
+    #|        "parameters": [
+    #|          {
+    #|            "name": "body",
+    #|            "in": "body",
+    #|            "required": true,
+    #|            "schema": { "$ref": "#/definitions/NewPet" }
+    #|          },
+    #|          {
+    #|            "name": "traceId",
+    #|            "in": "header",
+    #|            "type": "string"
+    #|          }
+    #|        ],
+    #|        "responses": {
+    #|          "201": {
+    #|            "description": "created",
+    #|            "schema": { "$ref": "#/definitions/Pet" }
+    #|          }
+    #|        }
+    #|      }
+    #|    }
+    #|  },
+    #|  "definitions": {
+    #|    "NewPet": {
+    #|      "title": "New pet",
+    #|      "type": "object",
+    #|      "required": ["name"],
+    #|      "properties": {
+    #|        "name": { "type": "string" },
+    #|        "category": { "$ref": "#/definitions/Category" }
+    #|      }
+    #|    },
+    #|    "Pet": {
+    #|      "title": "Pet",
+    #|      "allOf": [
+    #|        { "$ref": "#/definitions/NewPet" },
+    #|        {
+    #|          "type": "object",
+    #|          "properties": {
+    #|            "id": { "type": "integer" }
+    #|          }
+    #|        }
+    #|      ]
+    #|    },
+    #|    "Category": {
+    #|      "title": "Category",
+    #|      "type": "object",
+    #|      "properties": {
+    #|        "name": { "type": "string" }
+    #|      }
+    #|    }
+    #|  }
+    #|}
+  )
+}
+
+///|
+fn duplicate_body_swagger2_openapi() -> String {
+  (
+    #|{
+    #|  "swagger": "2.0",
+    #|  "info": { "title": "Broken", "version": "1.0.0" },
+    #|  "paths": {
+    #|    "/broken": {
+    #|      "post": {
+    #|        "operationId": "broken",
+    #|        "parameters": [
+    #|          { "name": "a", "in": "body", "schema": { "type": "object" } },
+    #|          { "name": "b", "in": "body", "schema": { "type": "object" } }
+    #|        ],
+    #|        "responses": { "200": { "description": "ok" } }
+    #|      }
+    #|    }
+    #|  }
+    #|}
+  )
+}
+
+///|
+fn openapi31_openapi() -> String {
+  (
+    #|{
+    #|  "openapi": "3.1.0",
+    #|  "info": { "title": "Petstore 3.1", "version": "1.0.0" },
+    #|  "paths": {
+    #|    "/pets": {
+    #|      "post": {
+    #|        "operationId": "addPet",
+    #|        "summary": "Add a pet",
+    #|        "tags": ["pets"],
+    #|        "requestBody": {
+    #|          "content": {
+    #|            "application/json": {
+    #|              "schema": { "$ref": "#/components/schemas/NewPet" }
+    #|            }
+    #|          }
+    #|        },
+    #|        "responses": {
+    #|          "201": {
+    #|            "description": "created",
+    #|            "content": {
+    #|              "application/json": {
+    #|                "schema": { "$ref": "#/components/schemas/Pet" }
+    #|              }
+    #|            }
+    #|          }
+    #|        }
+    #|      }
+    #|    }
+    #|  },
+    #|  "components": {
+    #|    "schemas": {
+    #|      "NewPet": {
+    #|        "type": "object",
+    #|        "properties": {
+    #|          "name": { "type": "string" }
+    #|        }
+    #|      },
+    #|      "Pet": {
+    #|        "allOf": [
+    #|          { "$ref": "#/components/schemas/NewPet" },
+    #|          { "type": "object" }
+    #|        ]
+    #|      }
+    #|    }
+    #|  }
+    #|}
+  )
+}
+
+///|
 fn no_components_openapi() -> String {
   (
     #|{
@@ -272,17 +430,30 @@ test "reject non object input before json parse" {
 }
 
 ///|
-test "reject unsupported swagger source in M1" {
+test "accept swagger 2 source when listing endpoints" {
+  let result = list_endpoints_from_source(
+    swagger2_openapi(),
+    options=all_options(),
+  )
+  assert_eq(result.unwrap().map(endpoint => endpoint.operation_id), [
+    "listPets", "addPet",
+  ])
+}
+
+///|
+test "reject unsupported swagger source" {
   let result = list_endpoints_from_source(
     (
       #|{
-      #|  "swagger": "2.0",
+      #|  "swagger": "1.2",
       #|  "paths": {}
       #|}
     ),
     options=all_options(),
   )
-  assert_true(result is Err(UnsupportedSpec("Swagger 2.0 is not supported")))
+  assert_true(
+    result is Err(UnsupportedSpec("unsupported Swagger version: 1.2")),
+  )
 }
 
 ///|
@@ -451,4 +622,105 @@ test "get schema decodes json pointer component names" {
   guard components.get("schemas") is Some(Object(schemas))
   assert_true(schemas.contains("Slash/Pet"))
   assert_true(schemas.contains("Tilde~Pet"))
+}
+
+///|
+test "get endpoint normalizes swagger 2 body and response schemas" {
+  let subset = get_endpoint_from_source(
+    swagger2_openapi(),
+    "addPet",
+    options=get_options(false),
+  ).unwrap()
+  assert_eq(subset.openapi_version, "3.0.0")
+  guard subset.operation is Object(operation)
+  guard operation.get("requestBody") is Some(Object(request_body))
+  guard request_body.get("content") is Some(Object(request_content))
+  guard request_content.get("application/json") is Some(Object(request_media))
+  guard request_media.get("schema") is Some(Object(request_schema))
+  assert_eq(
+    request_schema.get("$ref"),
+    Some(Json::string("#/components/schemas/NewPet")),
+  )
+  guard operation.get("responses") is Some(Object(responses))
+  guard responses.get("201") is Some(Object(created_response))
+  guard created_response.get("content") is Some(Object(response_content))
+  guard response_content.get("application/json") is Some(Object(response_media))
+  guard response_media.get("schema") is Some(Object(response_schema))
+  assert_eq(
+    response_schema.get("$ref"),
+    Some(Json::string("#/components/schemas/Pet")),
+  )
+  guard subset.components is Some(Object(components))
+  guard components.get("schemas") is Some(Object(schemas))
+  assert_true(schemas.contains("Pet"))
+  assert_true(schemas.contains("NewPet"))
+  assert_true(schemas.contains("Category"))
+}
+
+///|
+test "get schema works with swagger 2 definitions" {
+  let subset = get_schema_from_source(
+    swagger2_openapi(),
+    "Pet",
+    options=schema_options(true),
+  ).unwrap()
+  assert_eq(subset.openapi_version, "3.0.0")
+  guard subset.usages is Some(usages)
+  assert_eq(usages.map(usage => usage.operation_id), ["listPets", "addPet"])
+  guard subset.components is Some(Object(components))
+  guard components.get("schemas") is Some(Object(schemas))
+  assert_true(schemas.contains("Pet"))
+  assert_true(schemas.contains("NewPet"))
+  assert_true(schemas.contains("Category"))
+}
+
+///|
+test "reject swagger 2 operations with duplicate body parameters" {
+  let result = get_endpoint_from_source(
+    duplicate_body_swagger2_openapi(),
+    "broken",
+    options=get_options(false),
+  )
+  assert_true(
+    result is Err(ParseError("multiple body parameters are not supported")),
+  )
+}
+
+///|
+test "accept openapi 3.1 endpoint and schema lookups" {
+  let endpoint = get_endpoint_from_source(
+    openapi31_openapi(),
+    "addPet",
+    options=get_options(false),
+  ).unwrap()
+  assert_eq(endpoint.openapi_version, "3.1.0")
+  guard endpoint.components is Some(Object(endpoint_components))
+  guard endpoint_components.get("schemas") is Some(Object(endpoint_schemas))
+  assert_true(endpoint_schemas.contains("Pet"))
+  let schema = get_schema_from_source(
+    openapi31_openapi(),
+    "Pet",
+    options=schema_options(false),
+  ).unwrap()
+  assert_eq(schema.openapi_version, "3.1.0")
+  guard schema.components is Some(Object(schema_components))
+  guard schema_components.get("schemas") is Some(Object(schema_schemas))
+  assert_true(schema_schemas.contains("Pet"))
+  assert_true(schema_schemas.contains("NewPet"))
+}
+
+///|
+test "reject unsupported openapi major version" {
+  let result = list_endpoints_from_source(
+    (
+      #|{
+      #|  "openapi": "4.0.0",
+      #|  "paths": {}
+      #|}
+    ),
+    options=all_options(),
+  )
+  assert_true(
+    result is Err(UnsupportedSpec("unsupported OpenAPI version: 4.0.0")),
+  )
 }

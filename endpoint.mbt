@@ -57,38 +57,29 @@ pub fn list_endpoints(
   document : Json,
   options~ : EndpointListOptions,
 ) -> Result[Array[EndpointSummary], ApispecError] {
-  match document {
-    Object(root) =>
-      match validate_openapi3(root) {
+  match normalize_document(document) {
+    Err(err) => Err(err)
+    Ok(document) =>
+      match list_endpoints_normalized(document, options~) {
         Err(err) => Err(err)
-        Ok(_) =>
-          match root.get("paths") {
-            Some(Object(paths)) => Ok(extract_paths(paths, options))
-            Some(_) => Err(ParseError("expected 'paths' to be an object"))
-            None => Err(ParseError("missing required 'paths' object"))
-          }
+        Ok(endpoints) => Ok(endpoints)
       }
-    _ => Err(ParseError("expected JSON object input"))
   }
 }
 
 ///|
-fn validate_openapi3(root : Map[String, Json]) -> Result[Unit, ApispecError] {
-  match root.get("openapi") {
-    Some(String(version)) =>
-      if version.has_prefix("3.") {
-        Ok(())
-      } else {
-        Err(UnsupportedSpec("unsupported OpenAPI version: \{version}"))
+fn list_endpoints_normalized(
+  document : Json,
+  options~ : EndpointListOptions,
+) -> Result[Array[EndpointSummary], ApispecError] {
+  match document {
+    Object(root) =>
+      match root.get("paths") {
+        Some(Object(paths)) => Ok(extract_paths(paths, options))
+        Some(_) => Err(ParseError("expected 'paths' to be an object"))
+        None => Err(ParseError("missing required 'paths' object"))
       }
-    Some(_) => Err(ParseError("expected 'openapi' to be a string"))
-    None =>
-      match root.get("swagger") {
-        Some(String(version)) =>
-          Err(UnsupportedSpec("Swagger \{version} is not supported"))
-        Some(_) => Err(ParseError("expected 'swagger' to be a string"))
-        None => Err(ParseError("missing required 'openapi' version"))
-      }
+    _ => Err(ParseError("expected JSON object input"))
   }
 }
 

@@ -28,39 +28,47 @@ pub fn get_endpoint(
   target : String,
   options~ : EndpointGetOptions,
 ) -> Result[EndpointSubset, ApispecError] {
+  match normalize_document(document) {
+    Err(err) => Err(err)
+    Ok(document) => get_endpoint_normalized(document, target, options~)
+  }
+}
+
+///|
+fn get_endpoint_normalized(
+  document : Json,
+  target : String,
+  options~ : EndpointGetOptions,
+) -> Result[EndpointSubset, ApispecError] {
   match document {
     Object(root) =>
-      match validate_openapi3(root) {
-        Err(err) => Err(err)
-        Ok(_) =>
-          match root.get("paths") {
-            Some(Object(paths)) => {
-              let candidates = collect_operation_candidates(paths)
-              match resolve_operation(candidates, target) {
+      match root.get("paths") {
+        Some(Object(paths)) => {
+          let candidates = collect_operation_candidates(paths)
+          match resolve_operation(candidates, target) {
+            Err(err) => Err(err)
+            Ok(candidate) => {
+              let ref_result = if options.no_resolve {
+                Ok((None, []))
+              } else {
+                collect_reachable_components(document, candidate.operation)
+              }
+              match ref_result {
                 Err(err) => Err(err)
-                Ok(candidate) => {
-                  let ref_result = if options.no_resolve {
-                    Ok((None, []))
-                  } else {
-                    collect_reachable_components(document, candidate.operation)
-                  }
-                  match ref_result {
-                    Err(err) => Err(err)
-                    Ok((components, warnings)) =>
-                      Ok({
-                        openapi_version: openapi_version(root),
-                        endpoint: candidate.endpoint,
-                        operation: candidate.operation,
-                        components,
-                        warnings,
-                      })
-                  }
-                }
+                Ok((components, warnings)) =>
+                  Ok({
+                    openapi_version: openapi_version(root),
+                    endpoint: candidate.endpoint,
+                    operation: candidate.operation,
+                    components,
+                    warnings,
+                  })
               }
             }
-            Some(_) => Err(ParseError("expected 'paths' to be an object"))
-            None => Err(ParseError("missing required 'paths' object"))
           }
+        }
+        Some(_) => Err(ParseError("expected 'paths' to be an object"))
+        None => Err(ParseError("missing required 'paths' object"))
       }
     _ => Err(ParseError("expected JSON object input"))
   }
