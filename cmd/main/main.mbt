@@ -1,5 +1,5 @@
 ///|
-const VERSION : String = "0.1.2"
+const VERSION : String = "0.1.3"
 
 ///|
 async fn main {

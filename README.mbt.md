@@ -9,11 +9,18 @@ are stable enough for scripts and agents.
 
 ## Quick Start
 
-1. Install a release binary:
+1. Install with Homebrew:
+
+```bash
+brew tap Showichiro/tap
+brew install apispec
+```
+
+Or install a release binary directly:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Showichiro/moon_openapi_cli/main/scripts/install.sh \
-  | sh -s -- --version v0.1.2 --install-dir "$HOME/.local/bin"
+  | sh -s -- --version v0.1.3 --install-dir "$HOME/.local/bin"
 ```
 
 2. List operations:
