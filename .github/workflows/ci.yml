@@ -52,6 +52,12 @@ jobs:
           ./apispec describe --subcommand endpoint.get | grep '"name": "endpoint.get"'
           ./apispec endpoint ls -f tests/fixtures/petstore_v3.json --quiet | grep '^addPet$'
           ./apispec endpoint get addPet -f tests/fixtures/petstore_v3.json --format md | grep '^## POST /pets$'
+          python3 -m http.server 8765 --bind 127.0.0.1 --directory tests/fixtures >/tmp/apispec-http.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid"' EXIT
+          sleep 1
+          ./apispec endpoint ls -f http://127.0.0.1:8765/petstore_v3.json --quiet | grep '^addPet$'
+          ./apispec endpoint get addPet -f http://127.0.0.1:8765/petstore_v3.json --format md | grep '^## POST /pets$'
 
       - name: Exit code contract
         run: |
@@ -70,3 +76,15 @@ jobs:
           test "$status" -eq 3
           grep '"error":"resource_not_found"' /tmp/apispec-err
           grep '"input":"missing"' /tmp/apispec-err
+
+          python3 -m http.server 8766 --bind 127.0.0.1 --directory tests/fixtures >/tmp/apispec-http.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid"' EXIT
+          sleep 1
+          set +e
+          ./apispec endpoint ls -f http://127.0.0.1:8766/missing.json >/tmp/apispec-out 2>/tmp/apispec-err
+          status=$?
+          set -e
+          test "$status" -eq 4
+          grep '"error":"parse_error"' /tmp/apispec-err
+          grep 'HTTP 404' /tmp/apispec-err

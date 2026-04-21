@@ -2,7 +2,7 @@
 const VERSION : String = "0.1.0"
 
 ///|
-fn main {
+async fn main {
   let args = @env.args()
   let argv = if args.length() > 1 { args[1:] } else { [] }
   let parsed : Result[@argparse.Matches, _] = try? command().parse(argv~)
@@ -28,7 +28,7 @@ fn command() -> @argparse.Command {
             @argparse.OptionArg(
               "file",
               short='f',
-              about="Input JSON file. Use '-' for stdin.",
+              about="Input JSON file, http(s) URL, or '-' for stdin.",
               default_values=["-"],
             ),
             @argparse.OptionArg("tag", about="Filter by tag"),
@@ -54,7 +54,7 @@ fn command() -> @argparse.Command {
             @argparse.OptionArg(
               "file",
               short='f',
-              about="Input JSON file. Use '-' for stdin.",
+              about="Input JSON file, http(s) URL, or '-' for stdin.",
               default_values=["-"],
             ),
             @argparse.OptionArg("format", about="Output format: json or md", default_values=[
@@ -72,7 +72,7 @@ fn command() -> @argparse.Command {
             @argparse.OptionArg(
               "file",
               short='f',
-              about="Input JSON file. Use '-' for stdin.",
+              about="Input JSON file, http(s) URL, or '-' for stdin.",
               default_values=["-"],
             ),
             @argparse.OptionArg("format", about="Output format: json or md", default_values=[
@@ -96,7 +96,7 @@ fn command() -> @argparse.Command {
             @argparse.OptionArg(
               "file",
               short='f',
-              about="Input JSON file. Use '-' for stdin.",
+              about="Input JSON file, http(s) URL, or '-' for stdin.",
               default_values=["-"],
             ),
             @argparse.OptionArg("format", about="Output format: json or md", default_values=[
@@ -122,7 +122,7 @@ fn command() -> @argparse.Command {
 }
 
 ///|
-fn dispatch(matches : @argparse.Matches) -> Unit {
+async fn dispatch(matches : @argparse.Matches) -> Unit {
   match matches.subcommand {
     Some(("version", _)) => exit_success(VERSION + "\n")
     Some(("describe", describe_matches)) => describe(describe_matches)
@@ -164,9 +164,9 @@ fn describe(matches : @argparse.Matches) -> Unit {
 }
 
 ///|
-fn endpoint_ls(matches : @argparse.Matches) -> Unit {
+async fn endpoint_ls(matches : @argparse.Matches) -> Unit {
   let file = option_value(matches, "file").unwrap_or("-")
-  let content_result = if file == "-" { read_stdin() } else { read_file(file) }
+  let content_result = read_input(file)
   match content_result {
     Err(message) => exit_with_error(@lib.ParseError(message))
     Ok(content) => {
@@ -196,17 +196,13 @@ fn endpoint_ls(matches : @argparse.Matches) -> Unit {
 }
 
 ///|
-fn endpoint_get(matches : @argparse.Matches) -> Unit {
+async fn endpoint_get(matches : @argparse.Matches) -> Unit {
   let target_result = positional_target(matches)
   match target_result {
     Err(err) => exit_with_error(err)
     Ok(target) => {
       let file = option_value(matches, "file").unwrap_or("-")
-      let content_result = if file == "-" {
-        read_stdin()
-      } else {
-        read_file(file)
-      }
+      let content_result = read_input(file)
       match content_result {
         Err(message) => exit_with_error(@lib.ParseError(message))
         Ok(content) => {
@@ -240,9 +236,9 @@ fn endpoint_get(matches : @argparse.Matches) -> Unit {
 }
 
 ///|
-fn schema_ls(matches : @argparse.Matches) -> Unit {
+async fn schema_ls(matches : @argparse.Matches) -> Unit {
   let file = option_value(matches, "file").unwrap_or("-")
-  let content_result = if file == "-" { read_stdin() } else { read_file(file) }
+  let content_result = read_input(file)
   match content_result {
     Err(message) => exit_with_error(@lib.ParseError(message))
     Ok(content) =>
@@ -267,17 +263,13 @@ fn schema_ls(matches : @argparse.Matches) -> Unit {
 }
 
 ///|
-fn schema_get(matches : @argparse.Matches) -> Unit {
+async fn schema_get(matches : @argparse.Matches) -> Unit {
   let name_result = single_positional(matches, "name")
   match name_result {
     Err(err) => exit_with_error(err)
     Ok(name) => {
       let file = option_value(matches, "file").unwrap_or("-")
-      let content_result = if file == "-" {
-        read_stdin()
-      } else {
-        read_file(file)
-      }
+      let content_result = read_input(file)
       match content_result {
         Err(message) => exit_with_error(@lib.ParseError(message))
         Ok(content) => {
@@ -477,6 +469,67 @@ fn describe_command_suggestion() -> String {
 fn exit_success(output : String) -> Unit {
   write_stdout(output)
   exit_ffi(0)
+}
+
+///|
+enum InputSource {
+  Stdin
+  LocalFile(String)
+  RemoteUrl(String)
+  UnsupportedUrl(String)
+} derive(Eq, Debug)
+
+///|
+fn classify_input_source(source : String) -> InputSource {
+  if source == "-" {
+    Stdin
+  } else if source.has_prefix("http://") || source.has_prefix("https://") {
+    RemoteUrl(source)
+  } else {
+    match source.find("://") {
+      Some(protocol_len) => UnsupportedUrl(source[:protocol_len].to_string())
+      None => LocalFile(source)
+    }
+  }
+}
+
+///|
+async fn read_input(source : String) -> Result[String, String] {
+  match classify_input_source(source) {
+    Stdin => read_stdin()
+    LocalFile(path) => read_file(path)
+    RemoteUrl(url) => fetch_url(url)
+    UnsupportedUrl(scheme) => Err("unsupported input URL scheme: \{scheme}")
+  }
+}
+
+///|
+async fn fetch_url(url : String) -> Result[String, String] {
+  match @async.with_timeout_opt(10000, () => fetch_url_without_timeout(url)) {
+    Some(result) => result
+    None => Err("timed out fetching '\{url}' after 10000ms")
+  }
+}
+
+///|
+async fn fetch_url_without_timeout(url : String) -> Result[String, String] {
+  let result = try? @http.get(url)
+  match result {
+    Err(err) => Err("failed to fetch '\{url}': \{err}")
+    Ok((response, body)) =>
+      if response.code >= 200 && response.code < 300 {
+        let text_result = try? body.text()
+        match text_result {
+          Ok(text) => Ok(text)
+          Err(err) =>
+            Err("failed to decode response body from '\{url}': \{err}")
+        }
+      } else {
+        Err(
+          "failed to fetch '\{url}': HTTP \{response.code} \{response.reason}",
+        )
+      }
+  }
 }
 
 ///|

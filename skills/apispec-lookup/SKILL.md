@@ -40,11 +40,13 @@ transitively reference the schema.
 
 - JSON input only.
 - Use `-f <path>` for a file.
+- Use `-f <http(s) URL>` for a remote JSON OpenAPI or Swagger document.
 - Use `-f -` for stdin.
 - Convert YAML before calling `apispec`:
 
 ```bash
 yq -o=json openapi.yaml | apispec endpoint ls -f - --quiet
+apispec endpoint ls -f https://example.com/openapi.json --quiet
 ```
 
 ## Recovery

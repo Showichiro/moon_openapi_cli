@@ -1,11 +1,16 @@
 // Generated using `moon info`, DON'T EDIT IT
 package "Showichiro/moon_openapi_cli/cmd/main"
 
+import {
+  "moonbitlang/core/debug",
+}
+
 // Values
 
 // Errors
 
 // Types and methods
+type InputSource derive(Eq, @debug.Debug)
 
 // Type aliases
 

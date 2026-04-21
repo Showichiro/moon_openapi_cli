@@ -1,10 +1,18 @@
 {
   "name": "Showichiro/moon_openapi_cli",
   "version": "0.1.0",
+  "deps": {
+    "moonbitlang/async": "0.17.0"
+  },
   "readme": "README.mbt.md",
-  "preferred-target": "native",
   "repository": "https://github.com/Showichiro/moon_openapi_cli",
   "license": "Apache-2.0",
-  "keywords": ["openapi", "swagger", "cli", "ai-agent"],
-  "description": "Agent-friendly OpenAPI extraction CLI"
+  "keywords": [
+    "openapi",
+    "swagger",
+    "cli",
+    "ai-agent"
+  ],
+  "description": "Agent-friendly OpenAPI extraction CLI",
+  "preferred-target": "native"
 }

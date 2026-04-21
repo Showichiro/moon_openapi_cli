@@ -56,10 +56,12 @@ predictably.
 
 ## Input
 
-Use `-f <path>` for a JSON file. Use `-f -`, or omit `-f`, to read stdin.
+Use `-f <path>` for a JSON file, `-f <http(s) URL>` for a remote JSON
+document, or `-f -` for stdin. Omitting `-f` reads stdin.
 
 ```bash
 yq -o=json openapi.yaml | apispec endpoint ls -f - --quiet
+apispec endpoint ls -f https://example.com/openapi.json --quiet
 ```
 
 YAML is intentionally outside the CLI core. Convert YAML to JSON before passing
@@ -81,6 +83,7 @@ Examples:
 
 ```bash
 apispec endpoint ls -f openapi.json --tag pets --quiet
+apispec endpoint ls -f https://example.com/openapi.json --quiet
 apispec schema get Pet -f openapi.json --with-usages --format json
 ```
 
@@ -107,6 +110,7 @@ For endpoint lookup:
 ```bash
 apispec endpoint ls -f openapi.json --quiet
 apispec endpoint get addPet -f openapi.json --format md
+apispec endpoint get addPet -f https://example.com/openapi.json --format md
 ```
 
 For schema impact lookup:

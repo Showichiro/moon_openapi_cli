@@ -65,7 +65,9 @@ fn endpoint_ls_descriptor() -> CommandDescriptor {
     description: "List OpenAPI operations from an input document.",
     input_schema: object_schema(
       {
-        "file": string_schema("Input JSON file path. Use '-' for stdin."),
+        "file": string_schema(
+          "Input JSON file path, http(s) URL, or '-' for stdin.",
+        ),
         "tag": string_schema("Filter operations by tag."),
         "method": string_schema("Filter operations by HTTP method."),
         "format": enum_schema("Output format.", ["json", "md"]),
@@ -85,7 +87,9 @@ fn endpoint_get_descriptor() -> CommandDescriptor {
     input_schema: object_schema(
       {
         "target": string_schema("operationId, METHOD PATH, or PATH."),
-        "file": string_schema("Input JSON file path. Use '-' for stdin."),
+        "file": string_schema(
+          "Input JSON file path, http(s) URL, or '-' for stdin.",
+        ),
         "format": enum_schema("Output format.", ["json", "md"]),
         "noResolve": boolean_schema("Skip reachable component collection."),
       },
@@ -102,7 +106,9 @@ fn schema_ls_descriptor() -> CommandDescriptor {
     description: "List OpenAPI component schemas from an input document.",
     input_schema: object_schema(
       {
-        "file": string_schema("Input JSON file path. Use '-' for stdin."),
+        "file": string_schema(
+          "Input JSON file path, http(s) URL, or '-' for stdin.",
+        ),
         "format": enum_schema("Output format.", ["json", "md"]),
         "quiet": boolean_schema("Emit schema names only."),
       },
@@ -120,7 +126,9 @@ fn schema_get_descriptor() -> CommandDescriptor {
     input_schema: object_schema(
       {
         "name": string_schema("Schema name under components.schemas."),
-        "file": string_schema("Input JSON file path. Use '-' for stdin."),
+        "file": string_schema(
+          "Input JSON file path, http(s) URL, or '-' for stdin.",
+        ),
         "format": enum_schema("Output format.", ["json", "md"]),
         "withUsages": boolean_schema(
           "Include operations that reference the schema.",
