@@ -51,11 +51,10 @@ apispec-vX.Y.Z-macos-arm64
 
 The installer downloads these assets by version and platform.
 
-After both assets are uploaded, the workflow updates
-`Showichiro/homebrew-tap` with the new Formula URL and SHA256 values. Configure
-the `HOMEBREW_TAP_TOKEN` repository secret with write access to the tap
-repository; the default `GITHUB_TOKEN` is scoped to this repository and cannot
-push to the tap.
+The Homebrew Formula is maintained by the `Showichiro/homebrew-tap` repository.
+Its scheduled/manual workflow reads this repository's latest release and commits
+Formula URL/SHA256 updates to the tap using that repository's own
+`GITHUB_TOKEN`.
 
 ## Related
 
