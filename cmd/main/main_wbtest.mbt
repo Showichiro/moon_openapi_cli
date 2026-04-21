@@ -112,3 +112,57 @@ test "not found suggestion falls back when candidates cannot be listed" {
     suggestion, "run `apispec endpoint ls -f broken.json` to inspect available operations",
   )
 }
+
+///|
+test "format warnings as text by default shape" {
+  let output = format_warnings(
+    ["unsupported external $ref: external.json#/components/schemas/Photo"],
+    WarningText,
+  )
+  inspect(
+    output,
+    content="warning: unsupported external $ref: external.json#/components/schemas/Photo\n",
+  )
+}
+
+///|
+test "format warnings as json lines with classified ref" {
+  let output = format_warnings(
+    ["unsupported external $ref: external.json#/components/schemas/Photo"],
+    WarningJson,
+  )
+  assert_true(output.contains("\"level\":\"warning\""))
+  assert_true(output.contains("\"code\":\"unsupported_external_ref\""))
+  assert_true(
+    output.contains("\"ref\":\"external.json#/components/schemas/Photo\""),
+  )
+  assert_true(output.has_suffix("\n"))
+}
+
+///|
+test "format warnings supports internal ref and generic warning" {
+  let internal = warning_to_json_line("unsupported internal $ref: #/x/y")
+  assert_true(internal.contains("\"code\":\"unsupported_internal_ref\""))
+  assert_true(internal.contains("\"ref\":\"#/x/y\""))
+  let generic = warning_to_json_line("some warning")
+  assert_true(generic.contains("\"code\":\"warning\""))
+  assert_false(generic.contains("\"ref\""))
+}
+
+///|
+test "format warnings can be suppressed" {
+  assert_eq(format_warnings(["some warning"], WarningNone), "")
+}
+
+///|
+test "resolve warning format rejects unsupported value" {
+  let argv = ["endpoint", "get", "addPet", "--warnings", "yaml"]
+  let parsed : Result[@argparse.Matches, _] = try? command().parse(argv~)
+  guard parsed is Ok(root_matches)
+  guard root_matches.subcommand is Some(("endpoint", endpoint_matches))
+  guard endpoint_matches.subcommand is Some(("get", get_matches))
+  assert_true(
+    resolve_warning_format(get_matches)
+    is Err(@lib.UsageError("unsupported warnings: yaml")),
+  )
+}

@@ -60,6 +60,11 @@ fn command() -> @argparse.Command {
             @argparse.OptionArg("format", about="Output format: json or md", default_values=[
               "json",
             ]),
+            @argparse.OptionArg(
+              "warnings",
+              about="Warning output: text, json, or none",
+              default_values=["text"],
+            ),
           ],
           flags=[@argparse.FlagArg("no-resolve")],
         ),
@@ -102,6 +107,11 @@ fn command() -> @argparse.Command {
             @argparse.OptionArg("format", about="Output format: json or md", default_values=[
               "json",
             ]),
+            @argparse.OptionArg(
+              "warnings",
+              about="Warning output: text, json, or none",
+              default_values=["text"],
+            ),
           ],
           flags=[@argparse.FlagArg("with-usages")],
         ),
@@ -211,23 +221,25 @@ async fn endpoint_get(matches : @argparse.Matches) -> Unit {
           )
           match @lib.get_endpoint_from_source(content, target, options~) {
             Err(err) => exit_with_operation_error(err, target, content, file)
-            Ok(subset) => {
-              for warning in subset.warnings {
-                write_stderr("warning: \{warning}\n")
-              }
-              let format = resolve_get_format(matches)
-              match format {
-                Err(err) => exit_with_format_error(err, matches)
-                Ok(format) => {
-                  let output = @lib.format_endpoint_subset(subset, format)
-                  if output.is_empty() {
-                    exit_success("")
-                  } else {
-                    exit_success(output + "\n")
+            Ok(subset) =>
+              match resolve_warning_format(matches) {
+                Err(err) => exit_with_warning_format_error(err, matches)
+                Ok(warning_format) => {
+                  write_warnings(subset.warnings, warning_format)
+                  let format = resolve_get_format(matches)
+                  match format {
+                    Err(err) => exit_with_format_error(err, matches)
+                    Ok(format) => {
+                      let output = @lib.format_endpoint_subset(subset, format)
+                      if output.is_empty() {
+                        exit_success("")
+                      } else {
+                        exit_success(output + "\n")
+                      }
+                    }
                   }
                 }
               }
-            }
           }
         }
       }
@@ -278,23 +290,25 @@ async fn schema_get(matches : @argparse.Matches) -> Unit {
           )
           match @lib.get_schema_from_source(content, name, options~) {
             Err(err) => exit_with_schema_error(err, name, content, file)
-            Ok(subset) => {
-              for warning in subset.warnings {
-                write_stderr("warning: \{warning}\n")
-              }
-              let format = resolve_schema_get_format(matches)
-              match format {
-                Err(err) => exit_with_format_error(err, matches)
-                Ok(format) => {
-                  let output = @lib.format_schema_subset(subset, format)
-                  if output.is_empty() {
-                    exit_success("")
-                  } else {
-                    exit_success(output + "\n")
+            Ok(subset) =>
+              match resolve_warning_format(matches) {
+                Err(err) => exit_with_warning_format_error(err, matches)
+                Ok(warning_format) => {
+                  write_warnings(subset.warnings, warning_format)
+                  let format = resolve_schema_get_format(matches)
+                  match format {
+                    Err(err) => exit_with_format_error(err, matches)
+                    Ok(format) => {
+                      let output = @lib.format_schema_subset(subset, format)
+                      if output.is_empty() {
+                        exit_success("")
+                      } else {
+                        exit_success(output + "\n")
+                      }
+                    }
                   }
                 }
               }
-            }
           }
         }
       }
@@ -399,6 +413,18 @@ fn resolve_schema_get_format(
 }
 
 ///|
+fn resolve_warning_format(
+  matches : @argparse.Matches,
+) -> Result[WarningOutputFormat, @lib.ApispecError] {
+  match option_value(matches, "warnings").unwrap_or("text") {
+    "text" => Ok(WarningText)
+    "json" => Ok(WarningJson)
+    "none" => Ok(WarningNone)
+    value => Err(@lib.UsageError("unsupported warnings: \{value}"))
+  }
+}
+
+///|
 fn exit_with_error(err : @lib.ApispecError) -> Unit {
   write_stderr(err.to_stderr_json() + "\n")
   exit_ffi(err.exit_code())
@@ -423,6 +449,18 @@ fn exit_with_format_error(
     err,
     option_value(matches, "format"),
     Some("supported formats: json, md"),
+  )
+}
+
+///|
+fn exit_with_warning_format_error(
+  err : @lib.ApispecError,
+  matches : @argparse.Matches,
+) -> Unit {
+  exit_with_error_context(
+    err,
+    option_value(matches, "warnings"),
+    Some("supported warnings: text, json, none"),
   )
 }
 

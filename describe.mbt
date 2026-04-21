@@ -91,6 +91,9 @@ fn endpoint_get_descriptor() -> CommandDescriptor {
           "Input JSON file path, http(s) URL, or '-' for stdin.",
         ),
         "format": enum_schema("Output format.", ["json", "md"]),
+        "warnings": enum_schema("Warning output format.", [
+          "text", "json", "none",
+        ]),
         "noResolve": boolean_schema("Skip reachable component collection."),
       },
       ["target"],
@@ -130,6 +133,9 @@ fn schema_get_descriptor() -> CommandDescriptor {
           "Input JSON file path, http(s) URL, or '-' for stdin.",
         ),
         "format": enum_schema("Output format.", ["json", "md"]),
+        "warnings": enum_schema("Warning output format.", [
+          "text", "json", "none",
+        ]),
         "withUsages": boolean_schema(
           "Include operations that reference the schema.",
         ),

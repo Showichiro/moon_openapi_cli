@@ -78,6 +78,8 @@ apispec describe --subcommand endpoint.get
 
 - Read successful command results from stdout.
 - Read warnings and errors from stderr.
+- Prefer `--warnings json` on `get` commands when you need to inspect warnings
+  programmatically.
 - Non-interactive errors are one-line JSON with `error`, `message`, and often
   `input` and `suggestion`.
 - `ls --format json` emits JSON Lines.

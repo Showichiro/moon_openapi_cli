@@ -78,13 +78,16 @@ errors.
 | `--format json` on `get` | Pretty JSON object. |
 | `--format md` | Markdown optimized for agent reading. |
 | `--quiet` / `-q` | One value per line for composition. |
+| `--warnings text` on `get` | Human-readable warnings on stderr. |
+| `--warnings json` on `get` | Warning JSON Lines on stderr. |
+| `--warnings none` on `get` | Suppress warnings. |
 
 Examples:
 
 ```bash
 apispec endpoint ls -f openapi.json --tag pets --quiet
 apispec endpoint ls -f https://example.com/openapi.json --quiet
-apispec schema get Pet -f openapi.json --with-usages --format json
+apispec schema get Pet -f openapi.json --with-usages --format json --warnings json
 ```
 
 ## Exit Codes
@@ -103,20 +106,30 @@ Errors in non-interactive use are single-line JSON:
 {"error":"usage_error","message":"unsupported format: yaml","input":"yaml","suggestion":"supported formats: json, md"}
 ```
 
+Warnings can also be emitted as JSON Lines:
+
+```bash
+apispec endpoint get addPet -f openapi.json --warnings json
+```
+
+```json
+{"level":"warning","code":"unsupported_external_ref","message":"unsupported external $ref: external.json#/components/schemas/Photo","ref":"external.json#/components/schemas/Photo"}
+```
+
 ## Agent Workflow
 
 For endpoint lookup:
 
 ```bash
 apispec endpoint ls -f openapi.json --quiet
-apispec endpoint get addPet -f openapi.json --format md
-apispec endpoint get addPet -f https://example.com/openapi.json --format md
+apispec endpoint get addPet -f openapi.json --format md --warnings json
+apispec endpoint get addPet -f https://example.com/openapi.json --format md --warnings json
 ```
 
 For schema impact lookup:
 
 ```bash
-apispec schema get Pet -f openapi.json --with-usages --format json
+apispec schema get Pet -f openapi.json --with-usages --format json --warnings json
 ```
 
 For command discovery:
