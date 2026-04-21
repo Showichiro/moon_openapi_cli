@@ -66,3 +66,78 @@ test "format endpoint list as quiet ids" {
     ),
   )
 }
+
+///|
+fn empty_json_object() -> Json {
+  let object : Map[String, Json] = {}
+  Json::object(object)
+}
+
+///|
+test "format endpoint subset as json" {
+  let subset : @moon_openapi_cli.EndpointSubset = {
+    openapi_version: "3.0.3",
+    endpoint: {
+      operation_id: "addPet",
+      http_method: "POST",
+      path: "/pets",
+      tags: ["pets"],
+      summary: Some("Add a pet"),
+    },
+    operation: {
+      "operationId": Json::string("addPet"),
+      "responses": Json::object({ "201": empty_json_object() }),
+    },
+    components: None,
+    warnings: [],
+  }
+  inspect(
+    @moon_openapi_cli.format_endpoint_subset(
+      subset,
+      @moon_openapi_cli.EndpointGetJson,
+    ),
+    content=(
+      #|{
+      #|  "openapi": "3.0.3",
+      #|  "paths": {
+      #|    "/pets": {
+      #|      "post": {
+      #|        "operationId": "addPet",
+      #|        "responses": {
+      #|          "201": {}
+      #|        }
+      #|      }
+      #|    }
+      #|  }
+      #|}
+    ),
+  )
+}
+
+///|
+test "format endpoint subset as markdown" {
+  let subset : @moon_openapi_cli.EndpointSubset = {
+    openapi_version: "3.0.3",
+    endpoint: {
+      operation_id: "addPet",
+      http_method: "POST",
+      path: "/pets",
+      tags: ["pets"],
+      summary: Some("Add a pet"),
+    },
+    operation: {
+      "operationId": Json::string("addPet"),
+      "responses": Json::object({ "201": empty_json_object() }),
+    },
+    components: Some(Json::object({ "schemas": empty_json_object() })),
+    warnings: [],
+  }
+  let markdown = @moon_openapi_cli.format_endpoint_subset(
+    subset,
+    @moon_openapi_cli.EndpointGetMarkdown,
+  )
+  assert_true(markdown.contains("## POST /pets"))
+  assert_true(markdown.contains("operationId: addPet"))
+  assert_true(markdown.contains("### Responses"))
+  assert_true(markdown.contains("### Components"))
+}

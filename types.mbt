@@ -1,7 +1,9 @@
 ///|
 pub(all) enum ApispecError {
   UsageError(String)
+  ResourceNotFound(String)
   ParseError(String)
+  AmbiguousMatch(String)
   UnsupportedSpec(String)
 } derive(Eq, Debug)
 
@@ -9,7 +11,9 @@ pub(all) enum ApispecError {
 pub fn ApispecError::exit_code(self : ApispecError) -> Int {
   match self {
     UsageError(_) => 2
+    ResourceNotFound(_) => 3
     ParseError(_) | UnsupportedSpec(_) => 4
+    AmbiguousMatch(_) => 5
   }
 }
 
@@ -17,7 +21,9 @@ pub fn ApispecError::exit_code(self : ApispecError) -> Int {
 fn ApispecError::code(self : ApispecError) -> String {
   match self {
     UsageError(_) => "usage_error"
+    ResourceNotFound(_) => "resource_not_found"
     ParseError(_) => "parse_error"
+    AmbiguousMatch(_) => "ambiguous_match"
     UnsupportedSpec(_) => "unsupported_spec"
   }
 }
@@ -25,8 +31,11 @@ fn ApispecError::code(self : ApispecError) -> String {
 ///|
 fn ApispecError::message(self : ApispecError) -> String {
   match self {
-    UsageError(message) | ParseError(message) | UnsupportedSpec(message) =>
-      message
+    UsageError(message)
+    | ResourceNotFound(message)
+    | ParseError(message)
+    | AmbiguousMatch(message)
+    | UnsupportedSpec(message) => message
   }
 }
 
@@ -59,4 +68,24 @@ pub(all) enum EndpointListFormat {
   JsonLines
   Markdown
   Quiet
+} derive(Eq, Debug)
+
+///|
+pub(all) struct EndpointGetOptions {
+  no_resolve : Bool
+} derive(Eq, Debug)
+
+///|
+pub(all) struct EndpointSubset {
+  openapi_version : String
+  endpoint : EndpointSummary
+  operation : Json
+  components : Json?
+  warnings : Array[String]
+} derive(Eq, Debug)
+
+///|
+pub(all) enum EndpointGetFormat {
+  EndpointGetJson
+  EndpointGetMarkdown
 } derive(Eq, Debug)

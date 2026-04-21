@@ -39,6 +39,30 @@ fn command() -> @argparse.Command {
           ],
           flags=[@argparse.FlagArg("quiet", short='q')],
         ),
+        @argparse.Command(
+          "get",
+          about="Extract one OpenAPI operation",
+          positionals=[
+            @argparse.PositionArg(
+              "target",
+              about="operationId, METHOD PATH, or PATH",
+              num_args=@argparse.ValueRange(lower=1, upper=2),
+              allow_hyphen_values=true,
+            ),
+          ],
+          options=[
+            @argparse.OptionArg(
+              "file",
+              short='f',
+              about="Input JSON file. Use '-' for stdin.",
+              default_values=["-"],
+            ),
+            @argparse.OptionArg("format", about="Output format: json or md", default_values=[
+              "json",
+            ]),
+          ],
+          flags=[@argparse.FlagArg("no-resolve")],
+        ),
       ]),
       @argparse.Command("version", about="Print version"),
     ],
@@ -52,6 +76,7 @@ fn dispatch(matches : @argparse.Matches) -> Unit {
     Some(("endpoint", endpoint_matches)) =>
       match endpoint_matches.subcommand {
         Some(("ls", ls_matches)) => endpoint_ls(ls_matches)
+        Some(("get", get_matches)) => endpoint_get(get_matches)
         _ => exit_with_error(@lib.UsageError("missing endpoint subcommand"))
       }
     _ => exit_with_error(@lib.UsageError("missing subcommand"))
@@ -72,7 +97,7 @@ fn endpoint_ls(matches : @argparse.Matches) -> Unit {
       match @lib.list_endpoints_from_source(content, options~) {
         Err(err) => exit_with_error(err)
         Ok(endpoints) => {
-          let format = resolve_format(matches)
+          let format = resolve_list_format(matches)
           match format {
             Err(err) => exit_with_error(err)
             Ok(format) => {
@@ -91,6 +116,65 @@ fn endpoint_ls(matches : @argparse.Matches) -> Unit {
 }
 
 ///|
+fn endpoint_get(matches : @argparse.Matches) -> Unit {
+  let target_result = positional_target(matches)
+  match target_result {
+    Err(err) => exit_with_error(err)
+    Ok(target) => {
+      let file = option_value(matches, "file").unwrap_or("-")
+      let content_result = if file == "-" {
+        read_stdin()
+      } else {
+        read_file(file)
+      }
+      match content_result {
+        Err(message) => exit_with_error(@lib.ParseError(message))
+        Ok(content) => {
+          let options = @lib.endpoint_get_options(
+            matches.flags.get_or_default("no-resolve", false),
+          )
+          match @lib.get_endpoint_from_source(content, target, options~) {
+            Err(err) => exit_with_error(err)
+            Ok(subset) => {
+              for warning in subset.warnings {
+                write_stderr("warning: \{warning}\n")
+              }
+              let format = resolve_get_format(matches)
+              match format {
+                Err(err) => exit_with_error(err)
+                Ok(format) => {
+                  let output = @lib.format_endpoint_subset(subset, format)
+                  if output.is_empty() {
+                    exit_success("")
+                  } else {
+                    exit_success(output + "\n")
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+///|
+fn positional_target(
+  matches : @argparse.Matches,
+) -> Result[String, @lib.ApispecError] {
+  match matches.values.get("target") {
+    Some(values) =>
+      match values.length() {
+        1 => Ok(values[0])
+        2 => Ok(values[0] + " " + values[1])
+        _ => Err(@lib.UsageError("expected one endpoint target"))
+      }
+    None => Err(@lib.UsageError("expected one endpoint target"))
+  }
+}
+
+///|
 fn option_value(matches : @argparse.Matches, name : String) -> String? {
   match matches.values.get(name) {
     Some(values) =>
@@ -104,7 +188,7 @@ fn option_value(matches : @argparse.Matches, name : String) -> String? {
 }
 
 ///|
-fn resolve_format(
+fn resolve_list_format(
   matches : @argparse.Matches,
 ) -> Result[@lib.EndpointListFormat, @lib.ApispecError] {
   if matches.flags.get_or_default("quiet", false) {
@@ -115,6 +199,17 @@ fn resolve_format(
       "md" => Ok(@lib.Markdown)
       value => Err(@lib.UsageError("unsupported format: \{value}"))
     }
+  }
+}
+
+///|
+fn resolve_get_format(
+  matches : @argparse.Matches,
+) -> Result[@lib.EndpointGetFormat, @lib.ApispecError] {
+  match option_value(matches, "format").unwrap_or("json") {
+    "json" => Ok(@lib.EndpointGetJson)
+    "md" => Ok(@lib.EndpointGetMarkdown)
+    value => Err(@lib.UsageError("unsupported format: \{value}"))
   }
 }
 

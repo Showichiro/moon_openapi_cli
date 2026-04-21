@@ -31,6 +31,11 @@ pub fn endpoint_list_options(
 }
 
 ///|
+pub fn endpoint_get_options(no_resolve : Bool) -> EndpointGetOptions {
+  { no_resolve, }
+}
+
+///|
 pub fn list_endpoints_from_source(
   source : String,
   options~ : EndpointListOptions,
@@ -80,7 +85,7 @@ fn validate_openapi3(root : Map[String, Json]) -> Result[Unit, ApispecError] {
     None =>
       match root.get("swagger") {
         Some(String(version)) =>
-          Err(UnsupportedSpec("Swagger \{version} is not supported in M1"))
+          Err(UnsupportedSpec("Swagger \{version} is not supported"))
         Some(_) => Err(ParseError("expected 'swagger' to be a string"))
         None => Err(ParseError("missing required 'openapi' version"))
       }

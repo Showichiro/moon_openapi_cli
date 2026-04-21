@@ -43,8 +43,172 @@ fn sample_openapi() -> String {
 }
 
 ///|
+fn endpoint_get_openapi() -> String {
+  (
+    #|{
+    #|  "openapi": "3.0.3",
+    #|  "info": { "title": "Petstore", "version": "1.0.0" },
+    #|  "paths": {
+    #|    "/pets": {
+    #|      "get": {
+    #|        "operationId": "listPets",
+    #|        "summary": "List pets",
+    #|        "tags": ["pets"],
+    #|        "responses": {
+    #|          "200": {
+    #|            "description": "ok",
+    #|            "content": {
+    #|              "application/json": {
+    #|                "schema": {
+    #|                  "type": "array",
+    #|                  "items": { "$ref": "#/components/schemas/Pet" }
+    #|                }
+    #|              }
+    #|            }
+    #|          }
+    #|        }
+    #|      },
+    #|      "post": {
+    #|        "operationId": "addPet",
+    #|        "summary": "Add a pet",
+    #|        "tags": ["pets"],
+    #|        "requestBody": {
+    #|          "content": {
+    #|            "application/json": {
+    #|              "schema": { "$ref": "#/components/schemas/NewPet" }
+    #|            }
+    #|          }
+    #|        },
+    #|        "responses": {
+    #|          "201": {
+    #|            "description": "created",
+    #|            "content": {
+    #|              "application/json": {
+    #|                "schema": { "$ref": "#/components/schemas/Pet" }
+    #|              }
+    #|            }
+    #|          }
+    #|        }
+    #|      }
+    #|    },
+    #|    "/status": {
+    #|      "get": {
+    #|        "operationId": "getStatus",
+    #|        "tags": ["system"],
+    #|        "responses": { "200": { "description": "ok" } }
+    #|      }
+    #|    }
+    #|  },
+    #|  "components": {
+    #|    "schemas": {
+    #|      "NewPet": {
+    #|        "type": "object",
+    #|        "required": ["name"],
+    #|        "properties": {
+    #|          "name": { "type": "string" },
+    #|          "category": { "$ref": "#/components/schemas/Category" },
+    #|          "photo": { "$ref": "external.json#/components/schemas/Photo" }
+    #|        }
+    #|      },
+    #|      "Pet": {
+    #|        "allOf": [
+    #|          { "$ref": "#/components/schemas/NewPet" },
+    #|          {
+    #|            "type": "object",
+    #|            "properties": {
+    #|              "id": { "type": "integer" },
+    #|              "related": { "$ref": "#/components/schemas/Pet" }
+    #|            }
+    #|          }
+    #|        ]
+    #|      },
+    #|      "Category": {
+    #|        "type": "object",
+    #|        "properties": {
+    #|          "name": { "type": "string" }
+    #|        }
+    #|      },
+    #|      "Unused": { "type": "object" }
+    #|    }
+    #|  }
+    #|}
+  )
+}
+
+///|
+fn missing_ref_openapi() -> String {
+  (
+    #|{
+    #|  "openapi": "3.0.3",
+    #|  "info": { "title": "Broken", "version": "1.0.0" },
+    #|  "paths": {
+    #|    "/broken": {
+    #|      "get": {
+    #|        "operationId": "broken",
+    #|        "responses": {
+    #|          "200": {
+    #|            "description": "ok",
+    #|            "content": {
+    #|              "application/json": {
+    #|                "schema": { "$ref": "#/components/schemas/Missing" }
+    #|              }
+    #|            }
+    #|          }
+    #|        }
+    #|      }
+    #|    }
+    #|  },
+    #|  "components": { "schemas": {} }
+    #|}
+  )
+}
+
+///|
+fn encoded_ref_openapi() -> String {
+  (
+    #|{
+    #|  "openapi": "3.0.3",
+    #|  "info": { "title": "Encoded", "version": "1.0.0" },
+    #|  "paths": {
+    #|    "/encoded": {
+    #|      "get": {
+    #|        "operationId": "encoded",
+    #|        "responses": {
+    #|          "200": {
+    #|            "description": "ok",
+    #|            "content": {
+    #|              "application/json": {
+    #|                "schema": { "$ref": "#/components/schemas/Slash~1Pet" }
+    #|              }
+    #|            }
+    #|          }
+    #|        }
+    #|      }
+    #|    }
+    #|  },
+    #|  "components": {
+    #|    "schemas": {
+    #|      "Slash/Pet": {
+    #|        "type": "object",
+    #|        "properties": {
+    #|          "tilde": { "$ref": "#/components/schemas/Tilde~0Pet" }
+    #|        }
+    #|      },
+    #|      "Tilde~Pet": { "type": "object" }
+    #|    }
+    #|  }
+    #|}
+  )
+}
+
+///|
 fn all_options() -> EndpointListOptions {
   endpoint_list_options(None, None)
+}
+
+///|
+fn get_options(no_resolve : Bool) -> EndpointGetOptions {
+  endpoint_get_options(no_resolve)
 }
 
 ///|
@@ -99,7 +263,98 @@ test "reject unsupported swagger source in M1" {
     ),
     options=all_options(),
   )
-  assert_true(
-    result is Err(UnsupportedSpec("Swagger 2.0 is not supported in M1")),
+  assert_true(result is Err(UnsupportedSpec("Swagger 2.0 is not supported")))
+}
+
+///|
+test "get endpoint by operationId collects reachable components" {
+  let subset = get_endpoint_from_source(
+    endpoint_get_openapi(),
+    "addPet",
+    options=get_options(false),
+  ).unwrap()
+  assert_eq(subset.endpoint.operation_id, "addPet")
+  assert_eq(subset.endpoint.http_method, "POST")
+  assert_eq(subset.endpoint.path, "/pets")
+  assert_eq(subset.warnings, [
+    "unsupported external $ref: external.json#/components/schemas/Photo",
+  ])
+  guard subset.components is Some(Object(components))
+  guard components.get("schemas") is Some(Object(schemas))
+  assert_true(schemas.contains("NewPet"))
+  assert_true(schemas.contains("Pet"))
+  assert_true(schemas.contains("Category"))
+  assert_false(schemas.contains("Unused"))
+}
+
+///|
+test "get endpoint by METHOD PATH target" {
+  let subset = get_endpoint_from_source(
+    endpoint_get_openapi(),
+    "POST /pets",
+    options=get_options(true),
+  ).unwrap()
+  assert_eq(subset.endpoint.operation_id, "addPet")
+  assert_true(subset.components is None)
+  assert_eq(subset.warnings, [])
+}
+
+///|
+test "get endpoint by unambiguous path" {
+  let subset = get_endpoint_from_source(
+    endpoint_get_openapi(),
+    "/status",
+    options=get_options(false),
+  ).unwrap()
+  assert_eq(subset.endpoint.operation_id, "getStatus")
+  assert_true(subset.components is None)
+}
+
+///|
+test "get endpoint rejects ambiguous path target" {
+  let result = get_endpoint_from_source(
+    endpoint_get_openapi(),
+    "/pets",
+    options=get_options(false),
   )
+  assert_true(
+    result is Err(AmbiguousMatch("path matched multiple methods: /pets")),
+  )
+}
+
+///|
+test "get endpoint rejects missing target" {
+  let result = get_endpoint_from_source(
+    endpoint_get_openapi(),
+    "missingOperation",
+    options=get_options(false),
+  )
+  assert_true(
+    result is Err(ResourceNotFound("operation not found: missingOperation")),
+  )
+}
+
+///|
+test "get endpoint rejects missing internal ref" {
+  let result = get_endpoint_from_source(
+    missing_ref_openapi(),
+    "broken",
+    options=get_options(false),
+  )
+  assert_true(
+    result is Err(ParseError("unresolved $ref: #/components/schemas/Missing")),
+  )
+}
+
+///|
+test "get endpoint decodes json pointer component names" {
+  let subset = get_endpoint_from_source(
+    encoded_ref_openapi(),
+    "encoded",
+    options=get_options(false),
+  ).unwrap()
+  guard subset.components is Some(Object(components))
+  guard components.get("schemas") is Some(Object(schemas))
+  assert_true(schemas.contains("Slash/Pet"))
+  assert_true(schemas.contains("Tilde~Pet"))
 }

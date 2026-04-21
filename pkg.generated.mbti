@@ -6,9 +6,17 @@ import {
 }
 
 // Values
+pub fn endpoint_get_options(Bool) -> EndpointGetOptions
+
 pub fn endpoint_list_options(String?, String?) -> EndpointListOptions
 
 pub fn format_endpoint_list(Array[EndpointSummary], EndpointListFormat) -> String
+
+pub fn format_endpoint_subset(EndpointSubset, EndpointGetFormat) -> String
+
+pub fn get_endpoint(Json, String, options~ : EndpointGetOptions) -> Result[EndpointSubset, ApispecError]
+
+pub fn get_endpoint_from_source(String, String, options~ : EndpointGetOptions) -> Result[EndpointSubset, ApispecError]
 
 pub fn list_endpoints(Json, options~ : EndpointListOptions) -> Result[Array[EndpointSummary], ApispecError]
 
@@ -19,11 +27,22 @@ pub fn list_endpoints_from_source(String, options~ : EndpointListOptions) -> Res
 // Types and methods
 pub(all) enum ApispecError {
   UsageError(String)
+  ResourceNotFound(String)
   ParseError(String)
+  AmbiguousMatch(String)
   UnsupportedSpec(String)
 } derive(Eq, @debug.Debug)
 pub fn ApispecError::exit_code(Self) -> Int
 pub fn ApispecError::to_stderr_json(Self) -> String
+
+pub(all) enum EndpointGetFormat {
+  EndpointGetJson
+  EndpointGetMarkdown
+} derive(Eq, @debug.Debug)
+
+pub(all) struct EndpointGetOptions {
+  no_resolve : Bool
+} derive(Eq, @debug.Debug)
 
 pub(all) enum EndpointListFormat {
   JsonLines
@@ -35,6 +54,15 @@ pub(all) struct EndpointListOptions {
   tag : String?
   http_method : String?
 } derive(Eq, @debug.Debug)
+
+pub(all) struct EndpointSubset {
+  openapi_version : String
+  endpoint : EndpointSummary
+  operation : Json
+  components : Json?
+  warnings : Array[String]
+} derive(Eq, @debug.Debug)
+pub fn EndpointSubset::to_json(Self) -> Json
 
 pub(all) struct EndpointSummary {
   operation_id : String
