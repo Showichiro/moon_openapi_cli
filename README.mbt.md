@@ -81,6 +81,7 @@ errors.
 | `--warnings text` on `get` | Human-readable warnings on stderr. |
 | `--warnings json` on `get` | Warning JSON Lines on stderr. |
 | `--warnings none` on `get` | Suppress warnings. |
+| `--verbose` | Phase timing JSON Lines on stderr. |
 
 Examples:
 
@@ -114,6 +115,19 @@ apispec endpoint get addPet -f openapi.json --warnings json
 
 ```json
 {"level":"warning","code":"unsupported_external_ref","message":"unsupported external $ref: external.json#/components/schemas/Photo","ref":"external.json#/components/schemas/Photo"}
+```
+
+Verbose mode emits phase timings as JSON Lines on stderr:
+
+```bash
+apispec endpoint get addPet -f openapi.json --verbose
+```
+
+```json
+{"level":"debug","phase":"load","durationMs":2}
+{"level":"debug","phase":"extract","durationMs":4}
+{"level":"debug","phase":"format","durationMs":1}
+{"level":"debug","phase":"total","durationMs":7}
 ```
 
 ## Agent Workflow

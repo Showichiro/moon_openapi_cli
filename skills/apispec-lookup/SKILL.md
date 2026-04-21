@@ -80,6 +80,8 @@ apispec describe --subcommand endpoint.get
 - Read warnings and errors from stderr.
 - Prefer `--warnings json` on `get` commands when you need to inspect warnings
   programmatically.
+- Use `--verbose` when remote specs are slow or you need phase timings on
+  stderr.
 - Non-interactive errors are one-line JSON with `error`, `message`, and often
   `input` and `suggestion`.
 - `ls --format json` emits JSON Lines.

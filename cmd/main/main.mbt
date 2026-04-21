@@ -37,7 +37,10 @@ fn command() -> @argparse.Command {
               "json",
             ]),
           ],
-          flags=[@argparse.FlagArg("quiet", short='q')],
+          flags=[
+            @argparse.FlagArg("quiet", short='q'),
+            @argparse.FlagArg("verbose"),
+          ],
         ),
         @argparse.Command(
           "get",
@@ -66,7 +69,7 @@ fn command() -> @argparse.Command {
               default_values=["text"],
             ),
           ],
-          flags=[@argparse.FlagArg("no-resolve")],
+          flags=[@argparse.FlagArg("no-resolve"), @argparse.FlagArg("verbose")],
         ),
       ]),
       @argparse.Command("schema", subcommand_required=true, subcommands=[
@@ -84,7 +87,10 @@ fn command() -> @argparse.Command {
               "json",
             ]),
           ],
-          flags=[@argparse.FlagArg("quiet", short='q')],
+          flags=[
+            @argparse.FlagArg("quiet", short='q'),
+            @argparse.FlagArg("verbose"),
+          ],
         ),
         @argparse.Command(
           "get",
@@ -113,7 +119,7 @@ fn command() -> @argparse.Command {
               default_values=["text"],
             ),
           ],
-          flags=[@argparse.FlagArg("with-usages")],
+          flags=[@argparse.FlagArg("with-usages"), @argparse.FlagArg("verbose")],
         ),
       ]),
       @argparse.Command(
@@ -175,23 +181,43 @@ fn describe(matches : @argparse.Matches) -> Unit {
 
 ///|
 async fn endpoint_ls(matches : @argparse.Matches) -> Unit {
+  let trace = new_verbose_trace(matches)
   let file = option_value(matches, "file").unwrap_or("-")
+  let load_start = trace_now_ms()
   let content_result = read_input(file)
+  let load_end = trace_now_ms()
+  write_trace_phase(trace, "load", load_start, load_end)
   match content_result {
-    Err(message) => exit_with_error(@lib.ParseError(message))
+    Err(message) => {
+      write_trace_total(trace)
+      exit_with_error(@lib.ParseError(message))
+    }
     Ok(content) => {
       let options = @lib.endpoint_list_options(
         option_value(matches, "tag"),
         option_value(matches, "method"),
       )
+      let extract_start = trace_now_ms()
       match @lib.list_endpoints_from_source(content, options~) {
-        Err(err) => exit_with_error(err)
+        Err(err) => {
+          write_trace_phase(trace, "extract", extract_start, trace_now_ms())
+          write_trace_total(trace)
+          exit_with_error(err)
+        }
         Ok(endpoints) => {
+          write_trace_phase(trace, "extract", extract_start, trace_now_ms())
+          let format_start = trace_now_ms()
           let format = resolve_list_format(matches)
           match format {
-            Err(err) => exit_with_format_error(err, matches)
+            Err(err) => {
+              write_trace_phase(trace, "format", format_start, trace_now_ms())
+              write_trace_total(trace)
+              exit_with_format_error(err, matches)
+            }
             Ok(format) => {
               let output = @lib.format_endpoint_list(endpoints, format)
+              write_trace_phase(trace, "format", format_start, trace_now_ms())
+              write_trace_total(trace)
               if output.is_empty() {
                 exit_success("")
               } else {
@@ -207,30 +233,66 @@ async fn endpoint_ls(matches : @argparse.Matches) -> Unit {
 
 ///|
 async fn endpoint_get(matches : @argparse.Matches) -> Unit {
+  let trace = new_verbose_trace(matches)
   let target_result = positional_target(matches)
   match target_result {
-    Err(err) => exit_with_error(err)
+    Err(err) => {
+      write_trace_total(trace)
+      exit_with_error(err)
+    }
     Ok(target) => {
       let file = option_value(matches, "file").unwrap_or("-")
+      let load_start = trace_now_ms()
       let content_result = read_input(file)
+      let load_end = trace_now_ms()
+      write_trace_phase(trace, "load", load_start, load_end)
       match content_result {
-        Err(message) => exit_with_error(@lib.ParseError(message))
+        Err(message) => {
+          write_trace_total(trace)
+          exit_with_error(@lib.ParseError(message))
+        }
         Ok(content) => {
           let options = @lib.endpoint_get_options(
             matches.flags.get_or_default("no-resolve", false),
           )
+          let extract_start = trace_now_ms()
           match @lib.get_endpoint_from_source(content, target, options~) {
-            Err(err) => exit_with_operation_error(err, target, content, file)
-            Ok(subset) =>
+            Err(err) => {
+              write_trace_phase(trace, "extract", extract_start, trace_now_ms())
+              write_trace_total(trace)
+              exit_with_operation_error(err, target, content, file)
+            }
+            Ok(subset) => {
+              write_trace_phase(trace, "extract", extract_start, trace_now_ms())
               match resolve_warning_format(matches) {
-                Err(err) => exit_with_warning_format_error(err, matches)
+                Err(err) => {
+                  write_trace_total(trace)
+                  exit_with_warning_format_error(err, matches)
+                }
                 Ok(warning_format) => {
                   write_warnings(subset.warnings, warning_format)
+                  let format_start = trace_now_ms()
                   let format = resolve_get_format(matches)
                   match format {
-                    Err(err) => exit_with_format_error(err, matches)
+                    Err(err) => {
+                      write_trace_phase(
+                        trace,
+                        "format",
+                        format_start,
+                        trace_now_ms(),
+                      )
+                      write_trace_total(trace)
+                      exit_with_format_error(err, matches)
+                    }
                     Ok(format) => {
                       let output = @lib.format_endpoint_subset(subset, format)
+                      write_trace_phase(
+                        trace,
+                        "format",
+                        format_start,
+                        trace_now_ms(),
+                      )
+                      write_trace_total(trace)
                       if output.is_empty() {
                         exit_success("")
                       } else {
@@ -240,6 +302,7 @@ async fn endpoint_get(matches : @argparse.Matches) -> Unit {
                   }
                 }
               }
+            }
           }
         }
       }
@@ -249,19 +312,39 @@ async fn endpoint_get(matches : @argparse.Matches) -> Unit {
 
 ///|
 async fn schema_ls(matches : @argparse.Matches) -> Unit {
+  let trace = new_verbose_trace(matches)
   let file = option_value(matches, "file").unwrap_or("-")
+  let load_start = trace_now_ms()
   let content_result = read_input(file)
+  let load_end = trace_now_ms()
+  write_trace_phase(trace, "load", load_start, load_end)
   match content_result {
-    Err(message) => exit_with_error(@lib.ParseError(message))
-    Ok(content) =>
+    Err(message) => {
+      write_trace_total(trace)
+      exit_with_error(@lib.ParseError(message))
+    }
+    Ok(content) => {
+      let extract_start = trace_now_ms()
       match @lib.list_schemas_from_source(content) {
-        Err(err) => exit_with_error(err)
+        Err(err) => {
+          write_trace_phase(trace, "extract", extract_start, trace_now_ms())
+          write_trace_total(trace)
+          exit_with_error(err)
+        }
         Ok(schemas) => {
+          write_trace_phase(trace, "extract", extract_start, trace_now_ms())
+          let format_start = trace_now_ms()
           let format = resolve_schema_list_format(matches)
           match format {
-            Err(err) => exit_with_format_error(err, matches)
+            Err(err) => {
+              write_trace_phase(trace, "format", format_start, trace_now_ms())
+              write_trace_total(trace)
+              exit_with_format_error(err, matches)
+            }
             Ok(format) => {
               let output = @lib.format_schema_list(schemas, format)
+              write_trace_phase(trace, "format", format_start, trace_now_ms())
+              write_trace_total(trace)
               if output.is_empty() {
                 exit_success("")
               } else {
@@ -271,35 +354,72 @@ async fn schema_ls(matches : @argparse.Matches) -> Unit {
           }
         }
       }
+    }
   }
 }
 
 ///|
 async fn schema_get(matches : @argparse.Matches) -> Unit {
+  let trace = new_verbose_trace(matches)
   let name_result = single_positional(matches, "name")
   match name_result {
-    Err(err) => exit_with_error(err)
+    Err(err) => {
+      write_trace_total(trace)
+      exit_with_error(err)
+    }
     Ok(name) => {
       let file = option_value(matches, "file").unwrap_or("-")
+      let load_start = trace_now_ms()
       let content_result = read_input(file)
+      let load_end = trace_now_ms()
+      write_trace_phase(trace, "load", load_start, load_end)
       match content_result {
-        Err(message) => exit_with_error(@lib.ParseError(message))
+        Err(message) => {
+          write_trace_total(trace)
+          exit_with_error(@lib.ParseError(message))
+        }
         Ok(content) => {
           let options = @lib.schema_get_options(
             matches.flags.get_or_default("with-usages", false),
           )
+          let extract_start = trace_now_ms()
           match @lib.get_schema_from_source(content, name, options~) {
-            Err(err) => exit_with_schema_error(err, name, content, file)
-            Ok(subset) =>
+            Err(err) => {
+              write_trace_phase(trace, "extract", extract_start, trace_now_ms())
+              write_trace_total(trace)
+              exit_with_schema_error(err, name, content, file)
+            }
+            Ok(subset) => {
+              write_trace_phase(trace, "extract", extract_start, trace_now_ms())
               match resolve_warning_format(matches) {
-                Err(err) => exit_with_warning_format_error(err, matches)
+                Err(err) => {
+                  write_trace_total(trace)
+                  exit_with_warning_format_error(err, matches)
+                }
                 Ok(warning_format) => {
                   write_warnings(subset.warnings, warning_format)
+                  let format_start = trace_now_ms()
                   let format = resolve_schema_get_format(matches)
                   match format {
-                    Err(err) => exit_with_format_error(err, matches)
+                    Err(err) => {
+                      write_trace_phase(
+                        trace,
+                        "format",
+                        format_start,
+                        trace_now_ms(),
+                      )
+                      write_trace_total(trace)
+                      exit_with_format_error(err, matches)
+                    }
                     Ok(format) => {
                       let output = @lib.format_schema_subset(subset, format)
+                      write_trace_phase(
+                        trace,
+                        "format",
+                        format_start,
+                        trace_now_ms(),
+                      )
+                      write_trace_total(trace)
                       if output.is_empty() {
                         exit_success("")
                       } else {
@@ -309,6 +429,7 @@ async fn schema_get(matches : @argparse.Matches) -> Unit {
                   }
                 }
               }
+            }
           }
         }
       }

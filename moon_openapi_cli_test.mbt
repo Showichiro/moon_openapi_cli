@@ -254,6 +254,7 @@ test "describe command metadata includes schemas" {
   assert_true(json.contains("\"target\""))
   assert_true(json.contains("\"noResolve\""))
   assert_true(json.contains("\"warnings\""))
+  assert_true(json.contains("\"verbose\""))
   assert_true(json.contains("\"none\""))
   assert_true(json.contains("\"outputSchema\""))
 }
@@ -266,6 +267,16 @@ test "describe schema get metadata includes warnings option" {
   assert_true(json.contains("\"warnings\""))
   assert_true(json.contains("\"json\""))
   assert_true(json.contains("\"withUsages\""))
+  assert_true(json.contains("\"verbose\""))
+}
+
+///|
+test "describe list metadata includes verbose option" {
+  let result = @moon_openapi_cli.describe_command("endpoint.ls")
+  guard result is Ok(descriptor)
+  let json = descriptor.to_json().stringify()
+  assert_true(json.contains("\"quiet\""))
+  assert_true(json.contains("\"verbose\""))
 }
 
 ///|
