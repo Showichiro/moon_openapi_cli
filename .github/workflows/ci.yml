@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-15-intel
+          - macos-14
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up MoonBit
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+
+      - name: Show MoonBit version
+        run: moon version --all
+
+      - name: Verify generated files and formatting
+        run: |
+          moon info
+          moon fmt
+          git diff --exit-code
+
+      - name: Check and test
+        run: |
+          moon check
+          moon test
+
+      - name: Build release binary
+        run: |
+          moon build cmd/main --target native --release --strip
+          cp _build/native/release/build/cmd/main/main.exe ./apispec
+          chmod +x ./apispec
+          ./apispec version
+
+      - name: CLI smoke test
+        run: |
+          ./apispec describe --subcommand endpoint.get | grep '"name": "endpoint.get"'
+          ./apispec endpoint ls -f tests/fixtures/petstore_v3.json --quiet | grep '^addPet$'
+          ./apispec endpoint get addPet -f tests/fixtures/petstore_v3.json --format md | grep '^## POST /pets$'
+
+      - name: Exit code contract
+        run: |
+          set +e
+          ./apispec endpoint ls -f tests/fixtures/petstore_v3.json --format yaml >/tmp/apispec-out 2>/tmp/apispec-err
+          status=$?
+          set -e
+          test "$status" -eq 2
+          grep '"error":"usage_error"' /tmp/apispec-err
+          grep '"input":"yaml"' /tmp/apispec-err
+
+          set +e
+          ./apispec endpoint get missing -f tests/fixtures/petstore_v3.json >/tmp/apispec-out 2>/tmp/apispec-err
+          status=$?
+          set -e
+          test "$status" -eq 3
+          grep '"error":"resource_not_found"' /tmp/apispec-err
+          grep '"input":"missing"' /tmp/apispec-err

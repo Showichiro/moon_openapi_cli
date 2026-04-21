@@ -1,0 +1,63 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create release if needed
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ github.ref_name }}
+        run: |
+          gh release view "$VERSION" >/dev/null 2>&1 || \
+            gh release create "$VERSION" --title "$VERSION" --notes "apispec $VERSION"
+
+  build:
+    needs: create-release
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            os: linux
+            arch: x64
+          - runner: macos-15-intel
+            os: macos
+            arch: x64
+          - runner: macos-14
+            os: macos
+            arch: arm64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up MoonBit
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+
+      - name: Build binary
+        run: |
+          moon build cmd/main --target native --release --strip
+          mkdir -p dist
+          asset="apispec-${GITHUB_REF_NAME}-${{ matrix.os }}-${{ matrix.arch }}"
+          cp _build/native/release/build/cmd/main/main.exe "dist/${asset}"
+          chmod +x "dist/${asset}"
+          "dist/${asset}" version
+
+      - name: Upload release asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ github.ref_name }}
+        run: |
+          gh release upload "$VERSION" dist/* --clobber
