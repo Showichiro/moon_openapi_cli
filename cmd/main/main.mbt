@@ -210,7 +210,7 @@ async fn endpoint_get(matches : @argparse.Matches) -> Unit {
             matches.flags.get_or_default("no-resolve", false),
           )
           match @lib.get_endpoint_from_source(content, target, options~) {
-            Err(err) => exit_with_operation_error(err, target)
+            Err(err) => exit_with_operation_error(err, target, content, file)
             Ok(subset) => {
               for warning in subset.warnings {
                 write_stderr("warning: \{warning}\n")
@@ -277,7 +277,7 @@ async fn schema_get(matches : @argparse.Matches) -> Unit {
             matches.flags.get_or_default("with-usages", false),
           )
           match @lib.get_schema_from_source(content, name, options~) {
-            Err(err) => exit_with_schema_error(err, name)
+            Err(err) => exit_with_schema_error(err, name, content, file)
             Ok(subset) => {
               for warning in subset.warnings {
                 write_stderr("warning: \{warning}\n")
@@ -427,15 +427,18 @@ fn exit_with_format_error(
 }
 
 ///|
-fn exit_with_operation_error(err : @lib.ApispecError, target : String) -> Unit {
+fn exit_with_operation_error(
+  err : @lib.ApispecError,
+  target : String,
+  content : String,
+  file : String,
+) -> Unit {
   match err {
     @lib.ResourceNotFound(_) =>
       exit_with_error_context(
         err,
         Some(target),
-        Some(
-          "run `apispec endpoint ls -f <file>` to inspect available operations",
-        ),
+        Some(endpoint_not_found_suggestion(target, content, file)),
       )
     @lib.AmbiguousMatch(_) =>
       exit_with_error_context(
@@ -448,13 +451,18 @@ fn exit_with_operation_error(err : @lib.ApispecError, target : String) -> Unit {
 }
 
 ///|
-fn exit_with_schema_error(err : @lib.ApispecError, name : String) -> Unit {
+fn exit_with_schema_error(
+  err : @lib.ApispecError,
+  name : String,
+  content : String,
+  file : String,
+) -> Unit {
   match err {
     @lib.ResourceNotFound(_) =>
       exit_with_error_context(
         err,
         Some(name),
-        Some("run `apispec schema ls -f <file>` to inspect available schemas"),
+        Some(schema_not_found_suggestion(name, content, file)),
       )
     _ => exit_with_error(err)
   }
