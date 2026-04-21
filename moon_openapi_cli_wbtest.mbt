@@ -139,6 +139,61 @@ fn endpoint_get_openapi() -> String {
 }
 
 ///|
+fn search_ranking_openapi() -> String {
+  (
+    #|{
+    #|  "openapi": "3.0.3",
+    #|  "info": { "title": "Search ranking", "version": "1.0.0" },
+    #|  "paths": {
+    #|    "/api/assign-career-change/v1/chat-rooms": {
+    #|      "get": {
+    #|        "operationId": "ChatRoomsController_findAll",
+    #|        "summary": "List chat rooms",
+    #|        "tags": ["chat-rooms"],
+    #|        "responses": { "200": { "description": "ok" } }
+    #|      }
+    #|    },
+    #|    "/api/assign-career-change/v1/chat-rooms/{chatRoomId}/messages": {
+    #|      "get": {
+    #|        "operationId": "MessagesController_findAll",
+    #|        "summary": "List chat room messages",
+    #|        "tags": ["messages"],
+    #|        "responses": { "200": { "description": "ok" } }
+    #|      }
+    #|    }
+    #|  }
+    #|}
+  )
+}
+
+///|
+fn schema_search_ranking_openapi() -> String {
+  (
+    #|{
+    #|  "openapi": "3.0.3",
+    #|  "info": { "title": "Schema search ranking", "version": "1.0.0" },
+    #|  "paths": {},
+    #|  "components": {
+    #|    "schemas": {
+    #|      "CandidatePersonalInfo": {
+    #|        "title": "Candidate personal info",
+    #|        "type": "object"
+    #|      },
+    #|      "CandidateSearchCondition": {
+    #|        "type": "object",
+    #|        "properties": {
+    #|          "candidate": { "type": "string" },
+    #|          "personal": { "type": "string" },
+    #|          "info": { "type": "string" }
+    #|        }
+    #|      }
+    #|    }
+    #|  }
+    #|}
+  )
+}
+
+///|
 fn missing_ref_openapi() -> String {
   (
     #|{
@@ -389,6 +444,16 @@ fn schema_options(with_usages : Bool) -> SchemaGetOptions {
 }
 
 ///|
+fn endpoint_search_all(limit : Int) -> EndpointSearchOptions {
+  endpoint_search_options(None, None, limit)
+}
+
+///|
+fn schema_search_all(limit : Int) -> SchemaSearchOptions {
+  schema_search_options(limit)
+}
+
+///|
 test "list endpoints from OpenAPI 3 source" {
   let endpoints = list_endpoints_from_source(
     sample_openapi(),
@@ -421,6 +486,73 @@ test "filter endpoints by method ignoring case" {
     options=endpoint_list_options(None, Some("post")),
   ).unwrap()
   assert_eq(endpoints.map(endpoint => endpoint.operation_id), ["addPet"])
+}
+
+///|
+test "search endpoints by summary and query alias" {
+  let results = search_endpoints_from_source(
+    endpoint_get_openapi(),
+    "create pet",
+    options=endpoint_search_all(10),
+  ).unwrap()
+  assert_true(results.length() > 0)
+  assert_eq(results[0].operation_id, "addPet")
+  assert_eq(results[0].target, "POST /pets")
+  assert_true(results[0].score > 0)
+  assert_true(results[0].matched_fields.contains("operationId"))
+  assert_true(results[0].matched_fields.contains("summary"))
+}
+
+///|
+test "search endpoints ranks full token coverage over partial path match" {
+  let results = search_endpoints_from_source(
+    search_ranking_openapi(),
+    "chat room messages",
+    options=endpoint_search_all(10),
+  ).unwrap()
+  assert_true(results.length() > 0)
+  assert_eq(
+    results[0].target,
+    "GET /api/assign-career-change/v1/chat-rooms/{chatRoomId}/messages",
+  )
+}
+
+///|
+test "search endpoints respects method tag and limit" {
+  let results = search_endpoints_from_source(
+    sample_openapi(),
+    "pets",
+    options=endpoint_search_options(Some("pets"), Some("post"), 1),
+  ).unwrap()
+  assert_eq(results.length(), 1)
+  assert_eq(results[0].operation_id, "addPet")
+  assert_eq(results[0].http_method, "POST")
+}
+
+///|
+test "search endpoints returns empty array for no match" {
+  let results = search_endpoints_from_source(
+    sample_openapi(),
+    "inventory",
+    options=endpoint_search_all(10),
+  ).unwrap()
+  assert_eq(results.length(), 0)
+}
+
+///|
+test "search endpoints validates query and limit" {
+  let empty = search_endpoints_from_source(
+    sample_openapi(),
+    "  ",
+    options=endpoint_search_all(10),
+  )
+  assert_true(empty is Err(UsageError("expected non-empty search query")))
+  let bad_limit = search_endpoints_from_source(
+    sample_openapi(),
+    "pets",
+    options=endpoint_search_all(0),
+  )
+  assert_true(bad_limit is Err(UsageError("limit must be greater than 0")))
 }
 
 ///|
@@ -559,6 +691,41 @@ test "list schemas from components schemas" {
   assert_eq(schemas[1].schema_type, Some("object"))
   assert_eq(schemas[2].title, Some("Pet"))
   assert_true(schemas[2].schema_type is None)
+}
+
+///|
+test "search schemas by title and property name" {
+  let results = search_schemas_from_source(
+    endpoint_get_openapi(),
+    "category name",
+    options=schema_search_all(10),
+  ).unwrap()
+  assert_true(results.length() > 0)
+  assert_eq(results[0].name, "Category")
+  assert_true(results[0].matched_fields.contains("name"))
+  assert_true(results[0].matched_fields.contains("properties"))
+}
+
+///|
+test "search schemas prefers schema identity over property-only matches" {
+  let results = search_schemas_from_source(
+    schema_search_ranking_openapi(),
+    "candidate personal info",
+    options=schema_search_all(10),
+  ).unwrap()
+  assert_true(results.length() > 1)
+  assert_eq(results[0].name, "CandidatePersonalInfo")
+  assert_true(results[0].matched_fields.contains("name"))
+}
+
+///|
+test "search schemas respects limit" {
+  let results = search_schemas_from_source(
+    endpoint_get_openapi(),
+    "pet",
+    options=schema_search_all(1),
+  ).unwrap()
+  assert_eq(results.length(), 1)
 }
 
 ///|

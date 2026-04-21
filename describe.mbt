@@ -21,8 +21,10 @@ pub fn describe_commands() -> Array[CommandDescriptor] {
   [
     endpoint_ls_descriptor(),
     endpoint_get_descriptor(),
+    endpoint_search_descriptor(),
     schema_ls_descriptor(),
     schema_get_descriptor(),
+    schema_search_descriptor(),
     describe_descriptor(),
     version_descriptor(),
   ]
@@ -105,6 +107,30 @@ fn endpoint_get_descriptor() -> CommandDescriptor {
 }
 
 ///|
+fn endpoint_search_descriptor() -> CommandDescriptor {
+  {
+    name: "endpoint.search",
+    description: "Search OpenAPI operations by operationId, path, summary, method, or tag.",
+    input_schema: object_schema(
+      {
+        "query": string_schema("Search query."),
+        "file": string_schema(
+          "Input JSON file path, http(s) URL, or '-' for stdin.",
+        ),
+        "tag": string_schema("Filter operations by tag."),
+        "method": string_schema("Filter operations by HTTP method."),
+        "limit": integer_schema("Maximum number of results."),
+        "format": enum_schema("Output format.", ["json", "md"]),
+        "quiet": boolean_schema("Emit METHOD PATH targets only."),
+        "verbose": boolean_schema("Emit phase timing JSON Lines on stderr."),
+      },
+      ["query"],
+    ),
+    output_schema: array_schema(endpoint_search_result_schema()),
+  }
+}
+
+///|
 fn schema_ls_descriptor() -> CommandDescriptor {
   {
     name: "schema.ls",
@@ -151,6 +177,28 @@ fn schema_get_descriptor() -> CommandDescriptor {
 }
 
 ///|
+fn schema_search_descriptor() -> CommandDescriptor {
+  {
+    name: "schema.search",
+    description: "Search OpenAPI component schemas by name, title, type, description, or property.",
+    input_schema: object_schema(
+      {
+        "query": string_schema("Search query."),
+        "file": string_schema(
+          "Input JSON file path, http(s) URL, or '-' for stdin.",
+        ),
+        "limit": integer_schema("Maximum number of results."),
+        "format": enum_schema("Output format.", ["json", "md"]),
+        "quiet": boolean_schema("Emit schema names only."),
+        "verbose": boolean_schema("Emit phase timing JSON Lines on stderr."),
+      },
+      ["query"],
+    ),
+    output_schema: array_schema(schema_search_result_schema()),
+  }
+}
+
+///|
 fn describe_descriptor() -> CommandDescriptor {
   {
     name: "describe",
@@ -158,7 +206,8 @@ fn describe_descriptor() -> CommandDescriptor {
     input_schema: object_schema(
       {
         "subcommand": enum_schema("Optional descriptor name to return.", [
-          "endpoint.ls", "endpoint.get", "schema.ls", "schema.get", "describe", "version",
+          "endpoint.ls", "endpoint.get", "endpoint.search", "schema.ls", "schema.get",
+          "schema.search", "describe", "version",
         ]),
       },
       [],
@@ -224,6 +273,29 @@ fn endpoint_subset_schema() -> Json {
 }
 
 ///|
+fn endpoint_search_result_schema() -> Json {
+  object_schema(
+    {
+      "operationId": string_schema(
+        "OpenAPI operationId or generated METHOD PATH id.",
+      ),
+      "target": string_schema(
+        "Stable endpoint target accepted by endpoint get.",
+      ),
+      "method": string_schema("HTTP method."),
+      "path": string_schema("OpenAPI path template."),
+      "tags": array_schema(string_schema("Operation tag.")),
+      "summary": string_schema("Optional operation summary."),
+      "score": integer_schema("Search relevance score."),
+      "matchedFields": array_schema(string_schema("Matched search field.")),
+    },
+    [
+      "operationId", "target", "method", "path", "tags", "score", "matchedFields",
+    ],
+  )
+}
+
+///|
 fn schema_summary_schema() -> Json {
   object_schema(
     {
@@ -232,6 +304,20 @@ fn schema_summary_schema() -> Json {
       "type": string_schema("Optional JSON Schema type."),
     },
     ["name"],
+  )
+}
+
+///|
+fn schema_search_result_schema() -> Json {
+  object_schema(
+    {
+      "name": string_schema("Schema name."),
+      "title": string_schema("Optional schema title."),
+      "type": string_schema("Optional JSON Schema type."),
+      "score": integer_schema("Search relevance score."),
+      "matchedFields": array_schema(string_schema("Matched search field.")),
+    },
+    ["name", "score", "matchedFields"],
   )
 }
 
@@ -276,6 +362,11 @@ fn string_schema(description : String) -> Json {
 ///|
 fn boolean_schema(description : String) -> Json {
   { "type": Json::string("boolean"), "description": Json::string(description) }
+}
+
+///|
+fn integer_schema(description : String) -> Json {
+  { "type": Json::string("integer"), "description": Json::string(description) }
 }
 
 ///|

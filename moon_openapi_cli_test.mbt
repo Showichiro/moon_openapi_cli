@@ -68,6 +68,37 @@ test "format endpoint list as quiet ids" {
 }
 
 ///|
+test "format endpoint search results" {
+  let results : Array[@moon_openapi_cli.EndpointSearchResult] = [
+    {
+      operation_id: "addPet",
+      target: "POST /pets",
+      http_method: "POST",
+      path: "/pets",
+      tags: ["pets"],
+      summary: Some("Add a pet"),
+      score: 120,
+      matched_fields: ["operationId", "summary"],
+    },
+  ]
+  let json = @moon_openapi_cli.format_endpoint_search_results(
+    results,
+    @moon_openapi_cli.EndpointSearchJsonLines,
+  )
+  assert_true(json.contains("\"operationId\":\"addPet\""))
+  assert_true(json.contains("\"target\":\"POST /pets\""))
+  assert_true(json.contains("\"score\":120"))
+  assert_true(json.contains("\"matchedFields\""))
+  inspect(
+    @moon_openapi_cli.format_endpoint_search_results(
+      results,
+      @moon_openapi_cli.EndpointSearchQuiet,
+    ),
+    content="POST /pets",
+  )
+}
+
+///|
 fn empty_json_object() -> Json {
   let object : Map[String, Json] = {}
   Json::object(object)
@@ -193,6 +224,31 @@ test "format schema list as quiet names" {
 }
 
 ///|
+test "format schema search results" {
+  let results : Array[@moon_openapi_cli.SchemaSearchResult] = [
+    {
+      name: "Pet",
+      title: Some("Pet"),
+      schema_type: Some("object"),
+      score: 80,
+      matched_fields: ["name"],
+    },
+  ]
+  let markdown = @moon_openapi_cli.format_schema_search_results(
+    results,
+    @moon_openapi_cli.SchemaSearchMarkdown,
+  )
+  assert_true(markdown.contains("- Pet (object, score: 80) - Pet"))
+  inspect(
+    @moon_openapi_cli.format_schema_search_results(
+      results,
+      @moon_openapi_cli.SchemaSearchQuiet,
+    ),
+    content="Pet",
+  )
+}
+
+///|
 test "format schema subset as json" {
   let subset : @moon_openapi_cli.SchemaSubset = {
     openapi_version: "3.0.3",
@@ -244,7 +300,8 @@ test "format schema subset as markdown" {
 ///|
 test "describe command metadata includes schemas" {
   assert_eq(@moon_openapi_cli.describe_command_names(), [
-    "endpoint.ls", "endpoint.get", "schema.ls", "schema.get", "describe", "version",
+    "endpoint.ls", "endpoint.get", "endpoint.search", "schema.ls", "schema.get",
+    "schema.search", "describe", "version",
   ])
   let result = @moon_openapi_cli.describe_command("endpoint.get")
   guard result is Ok(descriptor)
@@ -257,6 +314,17 @@ test "describe command metadata includes schemas" {
   assert_true(json.contains("\"verbose\""))
   assert_true(json.contains("\"none\""))
   assert_true(json.contains("\"outputSchema\""))
+}
+
+///|
+test "describe search metadata includes limit and query" {
+  let result = @moon_openapi_cli.describe_command("endpoint.search")
+  guard result is Ok(descriptor)
+  let json = descriptor.to_json().stringify()
+  assert_true(json.contains("\"query\""))
+  assert_true(json.contains("\"limit\""))
+  assert_true(json.contains("\"matchedFields\""))
+  assert_true(json.contains("\"score\""))
 }
 
 ///|
@@ -285,6 +353,7 @@ test "format command descriptors as json array" {
     @moon_openapi_cli.describe_commands(),
   )
   assert_true(output.contains("\"name\": \"endpoint.ls\""))
+  assert_true(output.contains("\"name\": \"endpoint.search\""))
   assert_true(output.contains("\"name\": \"schema.get\""))
   assert_true(output.contains("\"inputSchema\""))
   assert_true(output.contains("\"outputSchema\""))

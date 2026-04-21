@@ -189,6 +189,42 @@ test "resolve warning format rejects unsupported value" {
 }
 
 ///|
+test "search query accepts multiple positional words" {
+  let argv = ["endpoint", "search", "create", "pet", "--limit", "3"]
+  let parsed : Result[@argparse.Matches, _] = try? command().parse(argv~)
+  guard parsed is Ok(root_matches)
+  guard root_matches.subcommand is Some(("endpoint", endpoint_matches))
+  guard endpoint_matches.subcommand is Some(("search", search_matches))
+  assert_true(joined_positional(search_matches, "query") is Ok("create pet"))
+  assert_true(resolve_limit(search_matches) is Ok(3))
+}
+
+///|
+test "search format honors quiet flag" {
+  let argv = ["schema", "search", "pet", "--quiet"]
+  let parsed : Result[@argparse.Matches, _] = try? command().parse(argv~)
+  guard parsed is Ok(root_matches)
+  guard root_matches.subcommand is Some(("schema", schema_matches))
+  guard schema_matches.subcommand is Some(("search", search_matches))
+  assert_true(
+    resolve_schema_search_format(search_matches) is Ok(@lib.SchemaSearchQuiet),
+  )
+}
+
+///|
+test "resolve limit rejects unsupported value" {
+  let argv = ["endpoint", "search", "pet", "--limit", "zero"]
+  let parsed : Result[@argparse.Matches, _] = try? command().parse(argv~)
+  guard parsed is Ok(root_matches)
+  guard root_matches.subcommand is Some(("endpoint", endpoint_matches))
+  guard endpoint_matches.subcommand is Some(("search", search_matches))
+  assert_true(
+    resolve_limit(search_matches)
+    is Err(@lib.UsageError("unsupported limit: zero")),
+  )
+}
+
+///|
 test "format trace event as debug json line payload" {
   let output = format_trace_event("load", 7UL)
   assert_true(output.contains("\"level\":\"debug\""))

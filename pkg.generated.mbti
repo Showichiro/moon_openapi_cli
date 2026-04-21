@@ -16,15 +16,21 @@ pub fn endpoint_get_options(Bool) -> EndpointGetOptions
 
 pub fn endpoint_list_options(String?, String?) -> EndpointListOptions
 
+pub fn endpoint_search_options(String?, String?, Int) -> EndpointSearchOptions
+
 pub fn format_command_descriptor(CommandDescriptor) -> String
 
 pub fn format_command_descriptors(Array[CommandDescriptor]) -> String
 
 pub fn format_endpoint_list(Array[EndpointSummary], EndpointListFormat) -> String
 
+pub fn format_endpoint_search_results(Array[EndpointSearchResult], EndpointSearchFormat) -> String
+
 pub fn format_endpoint_subset(EndpointSubset, EndpointGetFormat) -> String
 
 pub fn format_schema_list(Array[SchemaSummary], SchemaListFormat) -> String
+
+pub fn format_schema_search_results(Array[SchemaSearchResult], SchemaSearchFormat) -> String
 
 pub fn format_schema_subset(SchemaSubset, SchemaGetFormat) -> String
 
@@ -45,6 +51,16 @@ pub fn list_schemas(Json) -> Result[Array[SchemaSummary], ApispecError]
 pub fn list_schemas_from_source(String) -> Result[Array[SchemaSummary], ApispecError]
 
 pub fn schema_get_options(Bool) -> SchemaGetOptions
+
+pub fn schema_search_options(Int) -> SchemaSearchOptions
+
+pub fn search_endpoints(Json, String, options~ : EndpointSearchOptions) -> Result[Array[EndpointSearchResult], ApispecError]
+
+pub fn search_endpoints_from_source(String, String, options~ : EndpointSearchOptions) -> Result[Array[EndpointSearchResult], ApispecError]
+
+pub fn search_schemas(Json, String, options~ : SchemaSearchOptions) -> Result[Array[SchemaSearchResult], ApispecError]
+
+pub fn search_schemas_from_source(String, String, options~ : SchemaSearchOptions) -> Result[Array[SchemaSearchResult], ApispecError]
 
 // Errors
 
@@ -88,6 +104,30 @@ pub(all) struct EndpointListOptions {
   http_method : String?
 } derive(Eq, @debug.Debug)
 
+pub(all) enum EndpointSearchFormat {
+  EndpointSearchJsonLines
+  EndpointSearchMarkdown
+  EndpointSearchQuiet
+} derive(Eq, @debug.Debug)
+
+pub(all) struct EndpointSearchOptions {
+  tag : String?
+  http_method : String?
+  limit : Int
+} derive(Eq, @debug.Debug)
+
+pub(all) struct EndpointSearchResult {
+  operation_id : String
+  target : String
+  http_method : String
+  path : String
+  tags : Array[String]
+  summary : String?
+  score : Int
+  matched_fields : Array[String]
+} derive(Eq, @debug.Debug)
+pub fn EndpointSearchResult::to_json(Self) -> Json
+
 pub(all) struct EndpointSubset {
   openapi_version : String
   endpoint : EndpointSummary
@@ -120,6 +160,25 @@ pub(all) enum SchemaListFormat {
   SchemaListMarkdown
   SchemaListQuiet
 } derive(Eq, @debug.Debug)
+
+pub(all) enum SchemaSearchFormat {
+  SchemaSearchJsonLines
+  SchemaSearchMarkdown
+  SchemaSearchQuiet
+} derive(Eq, @debug.Debug)
+
+pub(all) struct SchemaSearchOptions {
+  limit : Int
+} derive(Eq, @debug.Debug)
+
+pub(all) struct SchemaSearchResult {
+  name : String
+  title : String?
+  schema_type : String?
+  score : Int
+  matched_fields : Array[String]
+} derive(Eq, @debug.Debug)
+pub fn SchemaSearchResult::to_json(Self) -> Json
 
 pub(all) struct SchemaSubset {
   openapi_version : String

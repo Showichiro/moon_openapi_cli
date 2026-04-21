@@ -71,6 +71,38 @@ fn command() -> @argparse.Command {
           ],
           flags=[@argparse.FlagArg("no-resolve"), @argparse.FlagArg("verbose")],
         ),
+        @argparse.Command(
+          "search",
+          about="Search OpenAPI operations",
+          positionals=[
+            @argparse.PositionArg(
+              "query",
+              about="Search query",
+              num_args=@argparse.ValueRange(lower=1),
+              allow_hyphen_values=true,
+            ),
+          ],
+          options=[
+            @argparse.OptionArg(
+              "file",
+              short='f',
+              about="Input JSON file, http(s) URL, or '-' for stdin.",
+              default_values=["-"],
+            ),
+            @argparse.OptionArg("tag", about="Filter by tag"),
+            @argparse.OptionArg("method", about="Filter by HTTP method"),
+            @argparse.OptionArg("limit", about="Maximum results", default_values=[
+              "10",
+            ]),
+            @argparse.OptionArg("format", about="Output format: json or md", default_values=[
+              "json",
+            ]),
+          ],
+          flags=[
+            @argparse.FlagArg("quiet", short='q'),
+            @argparse.FlagArg("verbose"),
+          ],
+        ),
       ]),
       @argparse.Command("schema", subcommand_required=true, subcommands=[
         @argparse.Command(
@@ -121,6 +153,36 @@ fn command() -> @argparse.Command {
           ],
           flags=[@argparse.FlagArg("with-usages"), @argparse.FlagArg("verbose")],
         ),
+        @argparse.Command(
+          "search",
+          about="Search OpenAPI component schemas",
+          positionals=[
+            @argparse.PositionArg(
+              "query",
+              about="Search query",
+              num_args=@argparse.ValueRange(lower=1),
+              allow_hyphen_values=true,
+            ),
+          ],
+          options=[
+            @argparse.OptionArg(
+              "file",
+              short='f',
+              about="Input JSON file, http(s) URL, or '-' for stdin.",
+              default_values=["-"],
+            ),
+            @argparse.OptionArg("limit", about="Maximum results", default_values=[
+              "10",
+            ]),
+            @argparse.OptionArg("format", about="Output format: json or md", default_values=[
+              "json",
+            ]),
+          ],
+          flags=[
+            @argparse.FlagArg("quiet", short='q'),
+            @argparse.FlagArg("verbose"),
+          ],
+        ),
       ]),
       @argparse.Command(
         "describe",
@@ -146,12 +208,14 @@ async fn dispatch(matches : @argparse.Matches) -> Unit {
       match endpoint_matches.subcommand {
         Some(("ls", ls_matches)) => endpoint_ls(ls_matches)
         Some(("get", get_matches)) => endpoint_get(get_matches)
+        Some(("search", search_matches)) => endpoint_search(search_matches)
         _ => exit_with_error(@lib.UsageError("missing endpoint subcommand"))
       }
     Some(("schema", schema_matches)) =>
       match schema_matches.subcommand {
         Some(("ls", ls_matches)) => schema_ls(ls_matches)
         Some(("get", get_matches)) => schema_get(get_matches)
+        Some(("search", search_matches)) => schema_search(search_matches)
         _ => exit_with_error(@lib.UsageError("missing schema subcommand"))
       }
     _ => exit_with_error(@lib.UsageError("missing subcommand"))
@@ -315,6 +379,100 @@ async fn endpoint_get(matches : @argparse.Matches) -> Unit {
 }
 
 ///|
+async fn endpoint_search(matches : @argparse.Matches) -> Unit {
+  let trace = new_verbose_trace(matches)
+  let query_result = joined_positional(matches, "query")
+  match query_result {
+    Err(err) => {
+      write_trace_total(trace)
+      exit_with_error(err)
+    }
+    Ok(query) => {
+      let limit_result = resolve_limit(matches)
+      match limit_result {
+        Err(err) => {
+          write_trace_total(trace)
+          exit_with_limit_error(err, matches)
+        }
+        Ok(limit) => {
+          let file = option_value(matches, "file").unwrap_or("-")
+          let load_start = trace_now_ms()
+          let content_result = read_input(file)
+          let load_end = trace_now_ms()
+          write_trace_phase(trace, "load", load_start, load_end)
+          match content_result {
+            Err(message) => {
+              write_trace_total(trace)
+              exit_with_error(@lib.ParseError(message))
+            }
+            Ok(content) => {
+              let options = @lib.endpoint_search_options(
+                option_value(matches, "tag"),
+                option_value(matches, "method"),
+                limit,
+              )
+              let extract_start = trace_now_ms()
+              match
+                @lib.search_endpoints_from_source(content, query, options~) {
+                Err(err) => {
+                  write_trace_phase(
+                    trace,
+                    "extract",
+                    extract_start,
+                    trace_now_ms(),
+                  )
+                  write_trace_total(trace)
+                  exit_with_error(err)
+                }
+                Ok(results) => {
+                  write_trace_phase(
+                    trace,
+                    "extract",
+                    extract_start,
+                    trace_now_ms(),
+                  )
+                  let format_start = trace_now_ms()
+                  let format = resolve_endpoint_search_format(matches)
+                  match format {
+                    Err(err) => {
+                      write_trace_phase(
+                        trace,
+                        "format",
+                        format_start,
+                        trace_now_ms(),
+                      )
+                      write_trace_total(trace)
+                      exit_with_format_error(err, matches)
+                    }
+                    Ok(format) => {
+                      let output = @lib.format_endpoint_search_results(
+                        results, format,
+                      )
+                      write_trace_phase(
+                        trace,
+                        "format",
+                        format_start,
+                        trace_now_ms(),
+                      )
+                      write_trace_total(trace)
+                      if output.is_empty() {
+                        exit_success("")
+                      } else {
+                        exit_success(output + "\n")
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+///|
 async fn schema_ls(matches : @argparse.Matches) -> Unit {
   let trace = new_verbose_trace(matches)
   let file = option_value(matches, "file").unwrap_or("-")
@@ -446,6 +604,95 @@ async fn schema_get(matches : @argparse.Matches) -> Unit {
 }
 
 ///|
+async fn schema_search(matches : @argparse.Matches) -> Unit {
+  let trace = new_verbose_trace(matches)
+  let query_result = joined_positional(matches, "query")
+  match query_result {
+    Err(err) => {
+      write_trace_total(trace)
+      exit_with_error(err)
+    }
+    Ok(query) => {
+      let limit_result = resolve_limit(matches)
+      match limit_result {
+        Err(err) => {
+          write_trace_total(trace)
+          exit_with_limit_error(err, matches)
+        }
+        Ok(limit) => {
+          let file = option_value(matches, "file").unwrap_or("-")
+          let load_start = trace_now_ms()
+          let content_result = read_input(file)
+          let load_end = trace_now_ms()
+          write_trace_phase(trace, "load", load_start, load_end)
+          match content_result {
+            Err(message) => {
+              write_trace_total(trace)
+              exit_with_error(@lib.ParseError(message))
+            }
+            Ok(content) => {
+              let options = @lib.schema_search_options(limit)
+              let extract_start = trace_now_ms()
+              match @lib.search_schemas_from_source(content, query, options~) {
+                Err(err) => {
+                  write_trace_phase(
+                    trace,
+                    "extract",
+                    extract_start,
+                    trace_now_ms(),
+                  )
+                  write_trace_total(trace)
+                  exit_with_error(err)
+                }
+                Ok(results) => {
+                  write_trace_phase(
+                    trace,
+                    "extract",
+                    extract_start,
+                    trace_now_ms(),
+                  )
+                  let format_start = trace_now_ms()
+                  let format = resolve_schema_search_format(matches)
+                  match format {
+                    Err(err) => {
+                      write_trace_phase(
+                        trace,
+                        "format",
+                        format_start,
+                        trace_now_ms(),
+                      )
+                      write_trace_total(trace)
+                      exit_with_format_error(err, matches)
+                    }
+                    Ok(format) => {
+                      let output = @lib.format_schema_search_results(
+                        results, format,
+                      )
+                      write_trace_phase(
+                        trace,
+                        "format",
+                        format_start,
+                        trace_now_ms(),
+                      )
+                      write_trace_total(trace)
+                      if output.is_empty() {
+                        exit_success("")
+                      } else {
+                        exit_success(output + "\n")
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+///|
 fn positional_target(
   matches : @argparse.Matches,
 ) -> Result[String, @lib.ApispecError] {
@@ -477,6 +724,22 @@ fn single_positional(
 }
 
 ///|
+fn joined_positional(
+  matches : @argparse.Matches,
+  name : String,
+) -> Result[String, @lib.ApispecError] {
+  match matches.values.get(name) {
+    Some(values) =>
+      if values.length() > 0 {
+        Ok(values.join(" "))
+      } else {
+        Err(@lib.UsageError("expected one or more \{name} values"))
+      }
+    None => Err(@lib.UsageError("expected one or more \{name} values"))
+  }
+}
+
+///|
 fn option_value(matches : @argparse.Matches, name : String) -> String? {
   match matches.values.get(name) {
     Some(values) =>
@@ -486,6 +749,51 @@ fn option_value(matches : @argparse.Matches, name : String) -> String? {
         None
       }
     None => None
+  }
+}
+
+///|
+fn resolve_limit(matches : @argparse.Matches) -> Result[Int, @lib.ApispecError] {
+  let value = option_value(matches, "limit").unwrap_or("10")
+  let parsed : Result[Int, _] = try? @string.parse_int(value)
+  match parsed {
+    Err(_) => Err(@lib.UsageError("unsupported limit: \{value}"))
+    Ok(limit) =>
+      if limit <= 0 {
+        Err(@lib.UsageError("limit must be greater than 0"))
+      } else {
+        Ok(limit)
+      }
+  }
+}
+
+///|
+fn resolve_endpoint_search_format(
+  matches : @argparse.Matches,
+) -> Result[@lib.EndpointSearchFormat, @lib.ApispecError] {
+  if matches.flags.get_or_default("quiet", false) {
+    Ok(@lib.EndpointSearchQuiet)
+  } else {
+    match option_value(matches, "format").unwrap_or("json") {
+      "json" => Ok(@lib.EndpointSearchJsonLines)
+      "md" => Ok(@lib.EndpointSearchMarkdown)
+      value => Err(@lib.UsageError("unsupported format: \{value}"))
+    }
+  }
+}
+
+///|
+fn resolve_schema_search_format(
+  matches : @argparse.Matches,
+) -> Result[@lib.SchemaSearchFormat, @lib.ApispecError] {
+  if matches.flags.get_or_default("quiet", false) {
+    Ok(@lib.SchemaSearchQuiet)
+  } else {
+    match option_value(matches, "format").unwrap_or("json") {
+      "json" => Ok(@lib.SchemaSearchJsonLines)
+      "md" => Ok(@lib.SchemaSearchMarkdown)
+      value => Err(@lib.UsageError("unsupported format: \{value}"))
+    }
   }
 }
 
@@ -590,6 +898,18 @@ fn exit_with_warning_format_error(
     err,
     option_value(matches, "warnings"),
     Some("supported warnings: text, json, none"),
+  )
+}
+
+///|
+fn exit_with_limit_error(
+  err : @lib.ApispecError,
+  matches : @argparse.Matches,
+) -> Unit {
+  exit_with_error_context(
+    err,
+    option_value(matches, "limit"),
+    Some("limit must be a positive integer"),
   )
 }
 

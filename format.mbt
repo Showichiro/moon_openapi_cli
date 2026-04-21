@@ -36,6 +36,48 @@ fn endpoint_to_markdown_line(endpoint : EndpointSummary) -> String {
 }
 
 ///|
+pub fn EndpointSearchResult::to_json(self : EndpointSearchResult) -> Json {
+  let object : Map[String, Json] = {
+    "operationId": Json::string(self.operation_id),
+    "target": Json::string(self.target),
+    "method": Json::string(self.http_method),
+    "path": Json::string(self.path),
+    "tags": Json::array(self.tags.map(tag => Json::string(tag))),
+    "score": Json::number(self.score.to_double()),
+    "matchedFields": Json::array(
+      self.matched_fields.map(field => Json::string(field)),
+    ),
+  }
+  if self.summary is Some(summary) {
+    object["summary"] = Json::string(summary)
+  }
+  Json::object(object)
+}
+
+///|
+pub fn format_endpoint_search_results(
+  results : Array[EndpointSearchResult],
+  format : EndpointSearchFormat,
+) -> String {
+  match format {
+    EndpointSearchJsonLines =>
+      results.map(result => result.to_json().stringify()).join("\n")
+    EndpointSearchMarkdown =>
+      results.map(endpoint_search_to_markdown_line).join("\n")
+    EndpointSearchQuiet => results.map(result => result.target).join("\n")
+  }
+}
+
+///|
+fn endpoint_search_to_markdown_line(result : EndpointSearchResult) -> String {
+  let base = "- \{result.http_method} \{result.path} \{result.operation_id} (score: \{result.score})"
+  match result.summary {
+    Some(summary) => "\{base} - \{summary}"
+    None => base
+  }
+}
+
+///|
 pub fn EndpointSubset::to_json(self : EndpointSubset) -> Json {
   let operation_by_method : Map[String, Json] = {}
   operation_by_method[self.endpoint.http_method.to_lower()] = self.operation
@@ -141,6 +183,51 @@ fn schema_to_markdown_line(schema : SchemaSummary) -> String {
     None => "- \{schema.name}"
   }
   match schema.title {
+    Some(title) => "\{with_type} - \{title}"
+    None => with_type
+  }
+}
+
+///|
+pub fn SchemaSearchResult::to_json(self : SchemaSearchResult) -> Json {
+  let object : Map[String, Json] = {
+    "name": Json::string(self.name),
+    "score": Json::number(self.score.to_double()),
+    "matchedFields": Json::array(
+      self.matched_fields.map(field => Json::string(field)),
+    ),
+  }
+  if self.title is Some(title) {
+    object["title"] = Json::string(title)
+  }
+  if self.schema_type is Some(schema_type) {
+    object["type"] = Json::string(schema_type)
+  }
+  Json::object(object)
+}
+
+///|
+pub fn format_schema_search_results(
+  results : Array[SchemaSearchResult],
+  format : SchemaSearchFormat,
+) -> String {
+  match format {
+    SchemaSearchJsonLines =>
+      results.map(result => result.to_json().stringify()).join("\n")
+    SchemaSearchMarkdown =>
+      results.map(schema_search_to_markdown_line).join("\n")
+    SchemaSearchQuiet => results.map(result => result.name).join("\n")
+  }
+}
+
+///|
+fn schema_search_to_markdown_line(result : SchemaSearchResult) -> String {
+  let with_type = match result.schema_type {
+    Some(schema_type) =>
+      "- \{result.name} (\{schema_type}, score: \{result.score})"
+    None => "- \{result.name} (score: \{result.score})"
+  }
+  match result.title {
     Some(title) => "\{with_type} - \{title}"
     None => with_type
   }

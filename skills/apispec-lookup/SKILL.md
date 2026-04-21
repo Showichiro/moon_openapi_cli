@@ -10,24 +10,36 @@ whole spec into the conversation.
 
 ## Core Workflow
 
-1. Find candidate operations:
+1. Search for likely operations:
+
+```bash
+apispec endpoint search "add pet" -f openapi.json --quiet
+```
+
+Use `--tag <tag>`, `--method <method>`, and `--limit <n>` to narrow results.
+`endpoint search --quiet` returns `METHOD PATH` targets that can be passed
+directly to `endpoint get`.
+
+2. List candidate operations when you need broad inventory:
 
 ```bash
 apispec endpoint ls -f openapi.json --quiet
 ```
 
-Use `--tag <tag>` or `--method <method>` to narrow the list.
-
-2. Extract one endpoint:
+3. Extract one endpoint:
 
 ```bash
-apispec endpoint get addPet -f openapi.json --format md
+apispec endpoint get "POST /pets" -f openapi.json --format md
 ```
 
 Prefer `--format md` when explaining an endpoint to a person. Prefer
 `--format json` when another tool or script will consume the result.
 
-3. Inspect a schema:
+4. Search or inspect a schema:
+
+```bash
+apispec schema search "pet id" -f openapi.json --quiet
+```
 
 ```bash
 apispec schema get Pet -f openapi.json --with-usages --format json
@@ -61,6 +73,13 @@ If a lookup fails:
 ```bash
 apispec endpoint ls -f openapi.json --quiet
 apispec schema ls -f openapi.json --quiet
+```
+
+- If the exact operationId or schema name is unknown, search first:
+
+```bash
+apispec endpoint search "create pet" -f openapi.json --quiet
+apispec schema search "category name" -f openapi.json --quiet
 ```
 
 - For `ambiguous_match`, retry with `METHOD PATH` or an operationId:

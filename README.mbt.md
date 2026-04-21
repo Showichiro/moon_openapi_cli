@@ -46,8 +46,10 @@ the binary.
 | --- | --- |
 | `apispec endpoint ls` | List OpenAPI operations. |
 | `apispec endpoint get <target>` | Extract one operation by operationId, `METHOD PATH`, or path. |
+| `apispec endpoint search <query>` | Search operations by operationId, path, summary, method, or tag. |
 | `apispec schema ls` | List component schemas. |
 | `apispec schema get <name>` | Extract one schema and optionally its usages. |
+| `apispec schema search <query>` | Search schemas by name, title, type, description, or property. |
 | `apispec describe` | Emit command descriptors with `inputSchema` and `outputSchema`. |
 | `apispec version` | Print the CLI version. |
 
@@ -95,7 +97,7 @@ errors.
 | `--format json` on `ls` | JSON Lines, one object per line. |
 | `--format json` on `get` | Pretty JSON object. |
 | `--format md` | Markdown optimized for agent reading. |
-| `--quiet` / `-q` | One value per line for composition. |
+| `--quiet` / `-q` | One value per line for composition. `endpoint search --quiet` emits `METHOD PATH` targets for `endpoint get`. |
 | `--warnings text` on `get` | Human-readable warnings on stderr. |
 | `--warnings json` on `get` | Warning JSON Lines on stderr. |
 | `--warnings none` on `get` | Suppress warnings. |
@@ -105,7 +107,9 @@ Examples:
 
 ```bash
 apispec endpoint ls -f openapi.json --tag pets --quiet
+apispec endpoint search "add pet" -f openapi.json --limit 5 --format json
 apispec endpoint ls -f https://example.com/openapi.json --quiet
+apispec schema search "category name" -f openapi.json --quiet
 apispec schema get Pet -f openapi.json --with-usages --format json --warnings json
 ```
 
@@ -157,14 +161,16 @@ apispec endpoint get addPet -f openapi.json --verbose
 For endpoint lookup:
 
 ```bash
+apispec endpoint search "add pet" -f openapi.json --quiet
 apispec endpoint ls -f openapi.json --quiet
-apispec endpoint get addPet -f openapi.json --format md --warnings json
+apispec endpoint get "POST /pets" -f openapi.json --format md --warnings json
 apispec endpoint get addPet -f https://example.com/openapi.json --format md --warnings json
 ```
 
 For schema impact lookup:
 
 ```bash
+apispec schema search "pet id" -f openapi.json --quiet
 apispec schema get Pet -f openapi.json --with-usages --format json --warnings json
 ```
 

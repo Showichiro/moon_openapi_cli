@@ -106,6 +106,32 @@ pub(all) enum EndpointGetFormat {
 } derive(Eq, Debug)
 
 ///|
+pub(all) struct EndpointSearchOptions {
+  tag : String?
+  http_method : String?
+  limit : Int
+} derive(Eq, Debug)
+
+///|
+pub(all) struct EndpointSearchResult {
+  operation_id : String
+  target : String
+  http_method : String
+  path : String
+  tags : Array[String]
+  summary : String?
+  score : Int
+  matched_fields : Array[String]
+} derive(Eq, Debug)
+
+///|
+pub(all) enum EndpointSearchFormat {
+  EndpointSearchJsonLines
+  EndpointSearchMarkdown
+  EndpointSearchQuiet
+} derive(Eq, Debug)
+
+///|
 pub(all) struct SchemaSummary {
   name : String
   title : String?
@@ -138,4 +164,25 @@ pub(all) struct SchemaSubset {
 pub(all) enum SchemaGetFormat {
   SchemaGetJson
   SchemaGetMarkdown
+} derive(Eq, Debug)
+
+///|
+pub(all) struct SchemaSearchOptions {
+  limit : Int
+} derive(Eq, Debug)
+
+///|
+pub(all) struct SchemaSearchResult {
+  name : String
+  title : String?
+  schema_type : String?
+  score : Int
+  matched_fields : Array[String]
+} derive(Eq, Debug)
+
+///|
+pub(all) enum SchemaSearchFormat {
+  SchemaSearchJsonLines
+  SchemaSearchMarkdown
+  SchemaSearchQuiet
 } derive(Eq, Debug)
