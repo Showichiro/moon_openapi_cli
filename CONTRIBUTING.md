@@ -42,15 +42,20 @@ cp _build/native/release/build/cmd/main/main.exe ./apispec
 ## Release
 
 Create and push a `v*` tag. The release workflow builds native binaries for
-Linux x64, macOS x64, and macOS arm64, then uploads assets named:
+Linux x64 and macOS arm64, then uploads assets named:
 
 ```text
 apispec-vX.Y.Z-linux-x64
-apispec-vX.Y.Z-macos-x64
 apispec-vX.Y.Z-macos-arm64
 ```
 
 The installer downloads these assets by version and platform.
+
+After both assets are uploaded, the workflow updates
+`Showichiro/homebrew-tap` with the new Formula URL and SHA256 values. Configure
+the `HOMEBREW_TAP_TOKEN` repository secret with write access to the tap
+repository; the default `GITHUB_TOKEN` is scoped to this repository and cannot
+push to the tap.
 
 ## Related
 

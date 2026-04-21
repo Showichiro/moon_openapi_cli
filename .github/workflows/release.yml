@@ -63,3 +63,91 @@ jobs:
           VERSION: ${{ github.ref_name }}
         run: |
           gh release upload "$VERSION" dist/* --clobber
+
+  update-homebrew-tap:
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ github.ref_name }}
+      REPOSITORY: ${{ github.repository }}
+      TAP_REPOSITORY: Showichiro/homebrew-tap
+
+    steps:
+      - name: Checkout tap
+        uses: actions/checkout@v5
+        with:
+          repository: ${{ env.TAP_REPOSITORY }}
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          path: homebrew-tap
+
+      - name: Update apispec formula
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+
+          version_number="${VERSION#v}"
+          linux_asset="apispec-${VERSION}-linux-x64"
+          macos_asset="apispec-${VERSION}-macos-arm64"
+
+          linux_url="$(gh release view "$VERSION" --repo "$REPOSITORY" --json assets --jq ".assets[] | select(.name == \"${linux_asset}\") | .url")"
+          linux_sha="$(gh release view "$VERSION" --repo "$REPOSITORY" --json assets --jq ".assets[] | select(.name == \"${linux_asset}\") | .digest" | sed 's/^sha256://')"
+          macos_url="$(gh release view "$VERSION" --repo "$REPOSITORY" --json assets --jq ".assets[] | select(.name == \"${macos_asset}\") | .url")"
+          macos_sha="$(gh release view "$VERSION" --repo "$REPOSITORY" --json assets --jq ".assets[] | select(.name == \"${macos_asset}\") | .digest" | sed 's/^sha256://')"
+
+          if [ -z "$linux_url" ] || [ -z "$linux_sha" ] || [ -z "$macos_url" ] || [ -z "$macos_sha" ]; then
+            echo "missing release asset metadata for ${VERSION}" >&2
+            gh release view "$VERSION" --repo "$REPOSITORY" --json assets
+            exit 1
+          fi
+
+          cd homebrew-tap
+          mkdir -p Formula
+          cat > Formula/apispec.rb <<EOF
+          class Apispec < Formula
+            desc "Agent-friendly OpenAPI extraction CLI"
+            homepage "https://github.com/Showichiro/moon_openapi_cli"
+            version "${version_number}"
+            license "Apache-2.0"
+
+            on_macos do
+              if Hardware::CPU.arm?
+                url "${macos_url}"
+                sha256 "${macos_sha}"
+              end
+            end
+
+            on_linux do
+              if Hardware::CPU.intel?
+                url "${linux_url}"
+                sha256 "${linux_sha}"
+              end
+            end
+
+            def install
+              bin.install Dir["apispec-*"].first => "apispec"
+            end
+
+            test do
+              assert_match version.to_s, shell_output("#{bin}/apispec version")
+              assert_match "\\"name\\": \\"endpoint.get\\"", shell_output("#{bin}/apispec describe --subcommand endpoint.get")
+            end
+          end
+          EOF
+
+          ruby -c Formula/apispec.rb
+
+      - name: Commit tap update
+        working-directory: homebrew-tap
+        run: |
+          set -eu
+          if git diff --quiet -- Formula/apispec.rb; then
+            echo "Homebrew formula already up to date."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Formula/apispec.rb
+          git commit -m "Update apispec to ${VERSION}"
+          git push
