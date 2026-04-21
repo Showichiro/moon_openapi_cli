@@ -1,0 +1,34 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Photo Components",
+    "version": "1.0.0"
+  },
+  "paths": {},
+  "components": {
+    "schemas": {
+      "Photo": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/PhotoMetadata"
+          }
+        }
+      },
+      "PhotoMetadata": {
+        "type": "object",
+        "properties": {
+          "width": {
+            "type": "integer"
+          },
+          "height": {
+            "type": "integer"
+          }
+        }
+      }
+    }
+  }
+}

@@ -256,13 +256,14 @@ async fn endpoint_get(matches : @argparse.Matches) -> Unit {
             matches.flags.get_or_default("no-resolve", false),
           )
           let extract_start = trace_now_ms()
-          match @lib.get_endpoint_from_source(content, target, options~) {
+          match
+            resolve_endpoint_with_external_refs(content, file, target, options) {
             Err(err) => {
               write_trace_phase(trace, "extract", extract_start, trace_now_ms())
               write_trace_total(trace)
               exit_with_operation_error(err, target, content, file)
             }
-            Ok(subset) => {
+            Ok(resolved) => {
               write_trace_phase(trace, "extract", extract_start, trace_now_ms())
               match resolve_warning_format(matches) {
                 Err(err) => {
@@ -270,7 +271,7 @@ async fn endpoint_get(matches : @argparse.Matches) -> Unit {
                   exit_with_warning_format_error(err, matches)
                 }
                 Ok(warning_format) => {
-                  write_warnings(subset.warnings, warning_format)
+                  write_warnings(resolved.warnings, warning_format)
                   let format_start = trace_now_ms()
                   let format = resolve_get_format(matches)
                   match format {
@@ -285,7 +286,10 @@ async fn endpoint_get(matches : @argparse.Matches) -> Unit {
                       exit_with_format_error(err, matches)
                     }
                     Ok(format) => {
-                      let output = @lib.format_endpoint_subset(subset, format)
+                      let output = @lib.format_endpoint_subset(
+                        resolved.subset,
+                        format,
+                      )
                       write_trace_phase(
                         trace,
                         "format",
@@ -383,13 +387,14 @@ async fn schema_get(matches : @argparse.Matches) -> Unit {
             matches.flags.get_or_default("with-usages", false),
           )
           let extract_start = trace_now_ms()
-          match @lib.get_schema_from_source(content, name, options~) {
+          match
+            resolve_schema_with_external_refs(content, file, name, options) {
             Err(err) => {
               write_trace_phase(trace, "extract", extract_start, trace_now_ms())
               write_trace_total(trace)
               exit_with_schema_error(err, name, content, file)
             }
-            Ok(subset) => {
+            Ok(resolved) => {
               write_trace_phase(trace, "extract", extract_start, trace_now_ms())
               match resolve_warning_format(matches) {
                 Err(err) => {
@@ -397,7 +402,7 @@ async fn schema_get(matches : @argparse.Matches) -> Unit {
                   exit_with_warning_format_error(err, matches)
                 }
                 Ok(warning_format) => {
-                  write_warnings(subset.warnings, warning_format)
+                  write_warnings(resolved.warnings, warning_format)
                   let format_start = trace_now_ms()
                   let format = resolve_schema_get_format(matches)
                   match format {
@@ -412,7 +417,10 @@ async fn schema_get(matches : @argparse.Matches) -> Unit {
                       exit_with_format_error(err, matches)
                     }
                     Ok(format) => {
-                      let output = @lib.format_schema_subset(subset, format)
+                      let output = @lib.format_schema_subset(
+                        resolved.subset,
+                        format,
+                      )
                       write_trace_phase(
                         trace,
                         "format",

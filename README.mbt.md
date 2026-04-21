@@ -67,6 +67,24 @@ apispec endpoint ls -f https://example.com/openapi.json --quiet
 YAML is intentionally outside the CLI core. Convert YAML to JSON before passing
 it to `apispec`.
 
+## External `$ref`
+
+`endpoint get` and `schema get` resolve reachable external JSON `$ref` values
+from local files and `http(s)` URLs. Relative refs are resolved against the
+input document location:
+
+```json
+{"$ref":"schemas/photo.json#/components/schemas/Photo"}
+```
+
+When the referenced component is found, `apispec` copies it into the emitted
+subset and rewrites the reference to an internal `$ref`. `endpoint get
+--no-resolve` skips both internal and external component resolution.
+
+External refs from stdin require absolute `http(s)` URLs because stdin has no
+base path. Failed loads, parse errors, missing pointers, and component name
+conflicts are reported as warnings.
+
 ## Output Contract
 
 `stdout` is reserved for command results. `stderr` is reserved for warnings and
@@ -116,6 +134,10 @@ apispec endpoint get addPet -f openapi.json --warnings json
 ```json
 {"level":"warning","code":"unsupported_external_ref","message":"unsupported external $ref: external.json#/components/schemas/Photo","ref":"external.json#/components/schemas/Photo"}
 ```
+
+External `$ref` resolution can also emit structured warning codes such as
+`external_ref_load_failed`, `external_ref_parse_failed`,
+`external_ref_pointer_not_found`, and `external_ref_conflict`.
 
 Verbose mode emits phase timings as JSON Lines on stderr:
 

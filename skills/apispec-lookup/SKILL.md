@@ -42,6 +42,9 @@ transitively reference the schema.
 - Use `-f <path>` for a file.
 - Use `-f <http(s) URL>` for a remote JSON OpenAPI or Swagger document.
 - Use `-f -` for stdin.
+- Reachable external JSON `$ref` values are resolved by `endpoint get` and
+  `schema get` for file and `http(s)` inputs. For stdin, use absolute
+  `http(s)` refs because relative refs have no base location.
 - Convert YAML before calling `apispec`:
 
 ```bash
@@ -80,6 +83,9 @@ apispec describe --subcommand endpoint.get
 - Read warnings and errors from stderr.
 - Prefer `--warnings json` on `get` commands when you need to inspect warnings
   programmatically.
+- If external refs fail, inspect warning codes such as
+  `external_ref_load_failed`, `external_ref_parse_failed`,
+  `external_ref_pointer_not_found`, or `external_ref_conflict`.
 - Use `--verbose` when remote specs are slow or you need phase timings on
   stderr.
 - Non-interactive errors are one-line JSON with `error`, `message`, and often

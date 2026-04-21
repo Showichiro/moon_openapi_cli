@@ -150,6 +150,27 @@ test "format warnings supports internal ref and generic warning" {
 }
 
 ///|
+test "format warnings classifies external ref resolver failures" {
+  let load = warning_to_json_line(
+    "external $ref load failed: photo.json#/components/schemas/Photo -- missing",
+  )
+  assert_true(load.contains("\"code\":\"external_ref_load_failed\""))
+  assert_true(load.contains("\"ref\":\"photo.json#/components/schemas/Photo\""))
+  let parse = warning_to_json_line(
+    "external $ref parse failed: photo.json#/components/schemas/Photo -- bad json",
+  )
+  assert_true(parse.contains("\"code\":\"external_ref_parse_failed\""))
+  let missing = warning_to_json_line(
+    "external $ref pointer not found: photo.json#/components/schemas/Photo",
+  )
+  assert_true(missing.contains("\"code\":\"external_ref_pointer_not_found\""))
+  let conflict = warning_to_json_line(
+    "external $ref conflict: photo.json#/components/schemas/Photo -- target already exists",
+  )
+  assert_true(conflict.contains("\"code\":\"external_ref_conflict\""))
+}
+
+///|
 test "format warnings can be suppressed" {
   assert_eq(format_warnings(["some warning"], WarningNone), "")
 }
@@ -200,4 +221,77 @@ test "verbose trace is disabled by default" {
   guard schema_matches.subcommand is Some(("get", get_matches))
   let trace = new_verbose_trace(get_matches)
   assert_false(trace.enabled)
+}
+
+///|
+test "resolve external local and remote reference locations" {
+  assert_eq(
+    resolve_local_ref("tests/fixtures/external_ref/root.json", "photo.json"),
+    "tests/fixtures/external_ref/photo.json",
+  )
+  assert_eq(
+    resolve_local_ref("tests/fixtures/external_ref/root.json", "../photo.json"),
+    "tests/fixtures/photo.json",
+  )
+  assert_eq(
+    resolve_remote_ref(
+      "https://example.com/apis/openapi.json", "schemas/photo.json",
+    ),
+    "https://example.com/apis/schemas/photo.json",
+  )
+  assert_eq(
+    resolve_remote_ref(
+      "https://example.com/apis/v1/openapi.json", "../schemas/photo.json",
+    ),
+    "https://example.com/apis/schemas/photo.json",
+  )
+  assert_eq(
+    resolve_remote_ref(
+      "https://example.com/apis/openapi.json", "/schemas/photo.json",
+    ),
+    "https://example.com/schemas/photo.json",
+  )
+}
+
+///|
+async test "endpoint get resolves reachable local external refs" {
+  let source = read_file("tests/fixtures/external_ref/root.json").unwrap()
+  let options = @lib.endpoint_get_options(false)
+  let resolved = resolve_endpoint_with_external_refs(
+    source, "tests/fixtures/external_ref/root.json", "addPet", options,
+  ).unwrap()
+  assert_eq(resolved.warnings, [])
+  guard resolved.subset.components is Some(Object(components))
+  guard components.get("schemas") is Some(Object(schemas))
+  assert_true(schemas.contains("NewPet"))
+  assert_true(schemas.contains("Pet"))
+  assert_true(schemas.contains("Photo"))
+  assert_true(schemas.contains("PhotoMetadata"))
+}
+
+///|
+async test "endpoint no-resolve skips external ref resolution" {
+  let source = read_file("tests/fixtures/external_ref/root.json").unwrap()
+  let options = @lib.endpoint_get_options(true)
+  let resolved = resolve_endpoint_with_external_refs(
+    source, "tests/fixtures/external_ref/root.json", "addPet", options,
+  ).unwrap()
+  assert_eq(resolved.warnings, [])
+  assert_true(resolved.subset.components is None)
+}
+
+///|
+async test "schema get resolves reachable local external refs" {
+  let source = read_file("tests/fixtures/external_ref/root.json").unwrap()
+  let options = @lib.schema_get_options(false)
+  let resolved = resolve_schema_with_external_refs(
+    source, "tests/fixtures/external_ref/root.json", "Pet", options,
+  ).unwrap()
+  assert_eq(resolved.warnings, [])
+  guard resolved.subset.components is Some(Object(components))
+  guard components.get("schemas") is Some(Object(schemas))
+  assert_true(schemas.contains("Pet"))
+  assert_true(schemas.contains("NewPet"))
+  assert_true(schemas.contains("Photo"))
+  assert_true(schemas.contains("PhotoMetadata"))
 }
