@@ -13,7 +13,7 @@ are stable enough for scripts and agents.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Showichiro/moon_openapi_cli/main/scripts/install.sh \
-  | sh -s -- --version v0.1.0 --install-dir "$HOME/.local/bin"
+  | sh -s -- --version v0.1.2 --install-dir "$HOME/.local/bin"
 ```
 
 2. List operations:
