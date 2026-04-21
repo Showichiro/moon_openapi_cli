@@ -16,9 +16,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ github.ref_name }}
+          REPOSITORY: ${{ github.repository }}
         run: |
-          gh release view "$VERSION" >/dev/null 2>&1 || \
-            gh release create "$VERSION" --title "$VERSION" --notes "apispec $VERSION"
+          gh release view "$VERSION" --repo "$REPOSITORY" >/dev/null 2>&1 || \
+            gh release create "$VERSION" --repo "$REPOSITORY" --title "$VERSION" --notes "apispec $VERSION"
 
   build:
     needs: create-release
