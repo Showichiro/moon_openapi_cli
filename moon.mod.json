@@ -1,0 +1,10 @@
+{
+  "name": "Showichiro/moon_openapi_cli",
+  "version": "0.1.0",
+  "readme": "README.mbt.md",
+  "preferred-target": "native",
+  "repository": "",
+  "license": "Apache-2.0",
+  "keywords": [],
+  "description": ""
+}

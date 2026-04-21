@@ -1,0 +1,11 @@
+import {
+  "Showichiro/moon_openapi_cli" @lib,
+  "moonbitlang/core/argparse" @argparse,
+  "moonbitlang/core/encoding/utf8" @utf8,
+  "moonbitlang/core/env" @env,
+}
+
+options(
+  "is-main": true,
+  "native-stub": [ "io.c" ],
+)
