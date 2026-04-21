@@ -6,9 +6,19 @@ import {
 }
 
 // Values
+pub fn describe_command(String) -> Result[CommandDescriptor, ApispecError]
+
+pub fn describe_command_names() -> Array[String]
+
+pub fn describe_commands() -> Array[CommandDescriptor]
+
 pub fn endpoint_get_options(Bool) -> EndpointGetOptions
 
 pub fn endpoint_list_options(String?, String?) -> EndpointListOptions
+
+pub fn format_command_descriptor(CommandDescriptor) -> String
+
+pub fn format_command_descriptors(Array[CommandDescriptor]) -> String
 
 pub fn format_endpoint_list(Array[EndpointSummary], EndpointListFormat) -> String
 
@@ -48,6 +58,15 @@ pub(all) enum ApispecError {
 } derive(Eq, @debug.Debug)
 pub fn ApispecError::exit_code(Self) -> Int
 pub fn ApispecError::to_stderr_json(Self) -> String
+pub fn ApispecError::to_stderr_json_with_context(Self, String?, String?) -> String
+
+pub(all) struct CommandDescriptor {
+  name : String
+  description : String
+  input_schema : Json
+  output_schema : Json
+} derive(Eq, @debug.Debug)
+pub fn CommandDescriptor::to_json(Self) -> Json
 
 pub(all) enum EndpointGetFormat {
   EndpointGetJson

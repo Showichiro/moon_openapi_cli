@@ -106,6 +106,16 @@ fn command() -> @argparse.Command {
           flags=[@argparse.FlagArg("with-usages")],
         ),
       ]),
+      @argparse.Command(
+        "describe",
+        about="Describe available apispec commands",
+        options=[
+          @argparse.OptionArg(
+            "subcommand",
+            about="Descriptor name such as endpoint.get",
+          ),
+        ],
+      ),
       @argparse.Command("version", about="Print version"),
     ],
   )
@@ -115,6 +125,7 @@ fn command() -> @argparse.Command {
 fn dispatch(matches : @argparse.Matches) -> Unit {
   match matches.subcommand {
     Some(("version", _)) => exit_success(VERSION + "\n")
+    Some(("describe", describe_matches)) => describe(describe_matches)
     Some(("endpoint", endpoint_matches)) =>
       match endpoint_matches.subcommand {
         Some(("ls", ls_matches)) => endpoint_ls(ls_matches)
@@ -128,6 +139,27 @@ fn dispatch(matches : @argparse.Matches) -> Unit {
         _ => exit_with_error(@lib.UsageError("missing schema subcommand"))
       }
     _ => exit_with_error(@lib.UsageError("missing subcommand"))
+  }
+}
+
+///|
+fn describe(matches : @argparse.Matches) -> Unit {
+  match option_value(matches, "subcommand") {
+    Some(name) =>
+      match @lib.describe_command(name) {
+        Ok(descriptor) =>
+          exit_success(@lib.format_command_descriptor(descriptor) + "\n")
+        Err(err) =>
+          exit_with_error_context(
+            err,
+            Some(name),
+            Some(describe_command_suggestion()),
+          )
+      }
+    None =>
+      exit_success(
+        @lib.format_command_descriptors(@lib.describe_commands()) + "\n",
+      )
   }
 }
 
@@ -147,7 +179,7 @@ fn endpoint_ls(matches : @argparse.Matches) -> Unit {
         Ok(endpoints) => {
           let format = resolve_list_format(matches)
           match format {
-            Err(err) => exit_with_error(err)
+            Err(err) => exit_with_format_error(err, matches)
             Ok(format) => {
               let output = @lib.format_endpoint_list(endpoints, format)
               if output.is_empty() {
@@ -182,14 +214,14 @@ fn endpoint_get(matches : @argparse.Matches) -> Unit {
             matches.flags.get_or_default("no-resolve", false),
           )
           match @lib.get_endpoint_from_source(content, target, options~) {
-            Err(err) => exit_with_error(err)
+            Err(err) => exit_with_operation_error(err, target)
             Ok(subset) => {
               for warning in subset.warnings {
                 write_stderr("warning: \{warning}\n")
               }
               let format = resolve_get_format(matches)
               match format {
-                Err(err) => exit_with_error(err)
+                Err(err) => exit_with_format_error(err, matches)
                 Ok(format) => {
                   let output = @lib.format_endpoint_subset(subset, format)
                   if output.is_empty() {
@@ -219,7 +251,7 @@ fn schema_ls(matches : @argparse.Matches) -> Unit {
         Ok(schemas) => {
           let format = resolve_schema_list_format(matches)
           match format {
-            Err(err) => exit_with_error(err)
+            Err(err) => exit_with_format_error(err, matches)
             Ok(format) => {
               let output = @lib.format_schema_list(schemas, format)
               if output.is_empty() {
@@ -253,14 +285,14 @@ fn schema_get(matches : @argparse.Matches) -> Unit {
             matches.flags.get_or_default("with-usages", false),
           )
           match @lib.get_schema_from_source(content, name, options~) {
-            Err(err) => exit_with_error(err)
+            Err(err) => exit_with_schema_error(err, name)
             Ok(subset) => {
               for warning in subset.warnings {
                 write_stderr("warning: \{warning}\n")
               }
               let format = resolve_schema_get_format(matches)
               match format {
-                Err(err) => exit_with_error(err)
+                Err(err) => exit_with_format_error(err, matches)
                 Ok(format) => {
                   let output = @lib.format_schema_subset(subset, format)
                   if output.is_empty() {
@@ -378,6 +410,67 @@ fn resolve_schema_get_format(
 fn exit_with_error(err : @lib.ApispecError) -> Unit {
   write_stderr(err.to_stderr_json() + "\n")
   exit_ffi(err.exit_code())
+}
+
+///|
+fn exit_with_error_context(
+  err : @lib.ApispecError,
+  input : String?,
+  suggestion : String?,
+) -> Unit {
+  write_stderr(err.to_stderr_json_with_context(input, suggestion) + "\n")
+  exit_ffi(err.exit_code())
+}
+
+///|
+fn exit_with_format_error(
+  err : @lib.ApispecError,
+  matches : @argparse.Matches,
+) -> Unit {
+  exit_with_error_context(
+    err,
+    option_value(matches, "format"),
+    Some("supported formats: json, md"),
+  )
+}
+
+///|
+fn exit_with_operation_error(err : @lib.ApispecError, target : String) -> Unit {
+  match err {
+    @lib.ResourceNotFound(_) =>
+      exit_with_error_context(
+        err,
+        Some(target),
+        Some(
+          "run `apispec endpoint ls -f <file>` to inspect available operations",
+        ),
+      )
+    @lib.AmbiguousMatch(_) =>
+      exit_with_error_context(
+        err,
+        Some(target),
+        Some("use an operationId or `METHOD PATH` to select one operation"),
+      )
+    _ => exit_with_error(err)
+  }
+}
+
+///|
+fn exit_with_schema_error(err : @lib.ApispecError, name : String) -> Unit {
+  match err {
+    @lib.ResourceNotFound(_) =>
+      exit_with_error_context(
+        err,
+        Some(name),
+        Some("run `apispec schema ls -f <file>` to inspect available schemas"),
+      )
+    _ => exit_with_error(err)
+  }
+}
+
+///|
+fn describe_command_suggestion() -> String {
+  "available subcommands: " + @lib.describe_command_names().join(", ")
 }
 
 ///|

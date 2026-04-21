@@ -41,11 +41,26 @@ fn ApispecError::message(self : ApispecError) -> String {
 
 ///|
 pub fn ApispecError::to_stderr_json(self : ApispecError) -> String {
-  let json : Json = {
+  self.to_stderr_json_with_context(None, None)
+}
+
+///|
+pub fn ApispecError::to_stderr_json_with_context(
+  self : ApispecError,
+  input : String?,
+  suggestion : String?,
+) -> String {
+  let object : Map[String, Json] = {
     "error": Json::string(self.code()),
     "message": Json::string(self.message()),
   }
-  json.stringify()
+  if input is Some(value) {
+    object["input"] = Json::string(value)
+  }
+  if suggestion is Some(value) {
+    object["suggestion"] = Json::string(value)
+  }
+  Json::object(object).stringify()
 }
 
 ///|

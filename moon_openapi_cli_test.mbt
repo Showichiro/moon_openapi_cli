@@ -240,3 +240,53 @@ test "format schema subset as markdown" {
   assert_true(markdown.contains("### Usages"))
   assert_true(markdown.contains("- none"))
 }
+
+///|
+test "describe command metadata includes schemas" {
+  assert_eq(@moon_openapi_cli.describe_command_names(), [
+    "endpoint.ls", "endpoint.get", "schema.ls", "schema.get", "describe", "version",
+  ])
+  let result = @moon_openapi_cli.describe_command("endpoint.get")
+  guard result is Ok(descriptor)
+  assert_eq(descriptor.name, "endpoint.get")
+  let json = descriptor.to_json().stringify()
+  assert_true(json.contains("\"inputSchema\""))
+  assert_true(json.contains("\"target\""))
+  assert_true(json.contains("\"noResolve\""))
+  assert_true(json.contains("\"outputSchema\""))
+}
+
+///|
+test "format command descriptors as json array" {
+  let output = @moon_openapi_cli.format_command_descriptors(
+    @moon_openapi_cli.describe_commands(),
+  )
+  assert_true(output.contains("\"name\": \"endpoint.ls\""))
+  assert_true(output.contains("\"name\": \"schema.get\""))
+  assert_true(output.contains("\"inputSchema\""))
+  assert_true(output.contains("\"outputSchema\""))
+}
+
+///|
+test "describe command rejects unknown descriptor" {
+  let result = @moon_openapi_cli.describe_command("missing")
+  guard result is Err(err)
+  assert_eq(err.exit_code(), 3)
+  assert_true(
+    err.to_stderr_json().contains("command descriptor not found: missing"),
+  )
+}
+
+///|
+test "error json can include input and suggestion" {
+  inspect(
+    @moon_openapi_cli.UsageError("bad input").to_stderr_json(),
+    content="{\"error\":\"usage_error\",\"message\":\"bad input\"}",
+  )
+  let output = @moon_openapi_cli.UsageError("unsupported format: yaml").to_stderr_json_with_context(
+    Some("yaml"),
+    Some("supported formats: json, md"),
+  )
+  assert_true(output.contains("\"input\":\"yaml\""))
+  assert_true(output.contains("\"suggestion\":\"supported formats: json, md\""))
+}
