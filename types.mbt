@@ -89,3 +89,38 @@ pub(all) enum EndpointGetFormat {
   EndpointGetJson
   EndpointGetMarkdown
 } derive(Eq, Debug)
+
+///|
+pub(all) struct SchemaSummary {
+  name : String
+  title : String?
+  schema_type : String?
+} derive(Eq, Debug)
+
+///|
+pub(all) enum SchemaListFormat {
+  SchemaListJsonLines
+  SchemaListMarkdown
+  SchemaListQuiet
+} derive(Eq, Debug)
+
+///|
+pub(all) struct SchemaGetOptions {
+  with_usages : Bool
+} derive(Eq, Debug)
+
+///|
+pub(all) struct SchemaSubset {
+  openapi_version : String
+  name : String
+  schema : Json
+  components : Json?
+  usages : Array[EndpointSummary]?
+  warnings : Array[String]
+} derive(Eq, Debug)
+
+///|
+pub(all) enum SchemaGetFormat {
+  SchemaGetJson
+  SchemaGetMarkdown
+} derive(Eq, Debug)

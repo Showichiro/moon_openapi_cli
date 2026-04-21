@@ -64,6 +64,48 @@ fn command() -> @argparse.Command {
           flags=[@argparse.FlagArg("no-resolve")],
         ),
       ]),
+      @argparse.Command("schema", subcommand_required=true, subcommands=[
+        @argparse.Command(
+          "ls",
+          about="List OpenAPI component schemas",
+          options=[
+            @argparse.OptionArg(
+              "file",
+              short='f',
+              about="Input JSON file. Use '-' for stdin.",
+              default_values=["-"],
+            ),
+            @argparse.OptionArg("format", about="Output format: json or md", default_values=[
+              "json",
+            ]),
+          ],
+          flags=[@argparse.FlagArg("quiet", short='q')],
+        ),
+        @argparse.Command(
+          "get",
+          about="Extract one OpenAPI component schema",
+          positionals=[
+            @argparse.PositionArg(
+              "name",
+              about="Schema name under components.schemas",
+              num_args=@argparse.ValueRange::single(),
+              allow_hyphen_values=true,
+            ),
+          ],
+          options=[
+            @argparse.OptionArg(
+              "file",
+              short='f',
+              about="Input JSON file. Use '-' for stdin.",
+              default_values=["-"],
+            ),
+            @argparse.OptionArg("format", about="Output format: json or md", default_values=[
+              "json",
+            ]),
+          ],
+          flags=[@argparse.FlagArg("with-usages")],
+        ),
+      ]),
       @argparse.Command("version", about="Print version"),
     ],
   )
@@ -78,6 +120,12 @@ fn dispatch(matches : @argparse.Matches) -> Unit {
         Some(("ls", ls_matches)) => endpoint_ls(ls_matches)
         Some(("get", get_matches)) => endpoint_get(get_matches)
         _ => exit_with_error(@lib.UsageError("missing endpoint subcommand"))
+      }
+    Some(("schema", schema_matches)) =>
+      match schema_matches.subcommand {
+        Some(("ls", ls_matches)) => schema_ls(ls_matches)
+        Some(("get", get_matches)) => schema_get(get_matches)
+        _ => exit_with_error(@lib.UsageError("missing schema subcommand"))
       }
     _ => exit_with_error(@lib.UsageError("missing subcommand"))
   }
@@ -160,6 +208,77 @@ fn endpoint_get(matches : @argparse.Matches) -> Unit {
 }
 
 ///|
+fn schema_ls(matches : @argparse.Matches) -> Unit {
+  let file = option_value(matches, "file").unwrap_or("-")
+  let content_result = if file == "-" { read_stdin() } else { read_file(file) }
+  match content_result {
+    Err(message) => exit_with_error(@lib.ParseError(message))
+    Ok(content) =>
+      match @lib.list_schemas_from_source(content) {
+        Err(err) => exit_with_error(err)
+        Ok(schemas) => {
+          let format = resolve_schema_list_format(matches)
+          match format {
+            Err(err) => exit_with_error(err)
+            Ok(format) => {
+              let output = @lib.format_schema_list(schemas, format)
+              if output.is_empty() {
+                exit_success("")
+              } else {
+                exit_success(output + "\n")
+              }
+            }
+          }
+        }
+      }
+  }
+}
+
+///|
+fn schema_get(matches : @argparse.Matches) -> Unit {
+  let name_result = single_positional(matches, "name")
+  match name_result {
+    Err(err) => exit_with_error(err)
+    Ok(name) => {
+      let file = option_value(matches, "file").unwrap_or("-")
+      let content_result = if file == "-" {
+        read_stdin()
+      } else {
+        read_file(file)
+      }
+      match content_result {
+        Err(message) => exit_with_error(@lib.ParseError(message))
+        Ok(content) => {
+          let options = @lib.schema_get_options(
+            matches.flags.get_or_default("with-usages", false),
+          )
+          match @lib.get_schema_from_source(content, name, options~) {
+            Err(err) => exit_with_error(err)
+            Ok(subset) => {
+              for warning in subset.warnings {
+                write_stderr("warning: \{warning}\n")
+              }
+              let format = resolve_schema_get_format(matches)
+              match format {
+                Err(err) => exit_with_error(err)
+                Ok(format) => {
+                  let output = @lib.format_schema_subset(subset, format)
+                  if output.is_empty() {
+                    exit_success("")
+                  } else {
+                    exit_success(output + "\n")
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+///|
 fn positional_target(
   matches : @argparse.Matches,
 ) -> Result[String, @lib.ApispecError] {
@@ -171,6 +290,22 @@ fn positional_target(
         _ => Err(@lib.UsageError("expected one endpoint target"))
       }
     None => Err(@lib.UsageError("expected one endpoint target"))
+  }
+}
+
+///|
+fn single_positional(
+  matches : @argparse.Matches,
+  name : String,
+) -> Result[String, @lib.ApispecError] {
+  match matches.values.get(name) {
+    Some(values) =>
+      if values.length() == 1 {
+        Ok(values[0])
+      } else {
+        Err(@lib.UsageError("expected one \{name} value"))
+      }
+    None => Err(@lib.UsageError("expected one \{name} value"))
   }
 }
 
@@ -209,6 +344,32 @@ fn resolve_get_format(
   match option_value(matches, "format").unwrap_or("json") {
     "json" => Ok(@lib.EndpointGetJson)
     "md" => Ok(@lib.EndpointGetMarkdown)
+    value => Err(@lib.UsageError("unsupported format: \{value}"))
+  }
+}
+
+///|
+fn resolve_schema_list_format(
+  matches : @argparse.Matches,
+) -> Result[@lib.SchemaListFormat, @lib.ApispecError] {
+  if matches.flags.get_or_default("quiet", false) {
+    Ok(@lib.SchemaListQuiet)
+  } else {
+    match option_value(matches, "format").unwrap_or("json") {
+      "json" => Ok(@lib.SchemaListJsonLines)
+      "md" => Ok(@lib.SchemaListMarkdown)
+      value => Err(@lib.UsageError("unsupported format: \{value}"))
+    }
+  }
+}
+
+///|
+fn resolve_schema_get_format(
+  matches : @argparse.Matches,
+) -> Result[@lib.SchemaGetFormat, @lib.ApispecError] {
+  match option_value(matches, "format").unwrap_or("json") {
+    "json" => Ok(@lib.SchemaGetJson)
+    "md" => Ok(@lib.SchemaGetMarkdown)
     value => Err(@lib.UsageError("unsupported format: \{value}"))
   }
 }

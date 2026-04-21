@@ -141,3 +141,102 @@ test "format endpoint subset as markdown" {
   assert_true(markdown.contains("### Responses"))
   assert_true(markdown.contains("### Components"))
 }
+
+///|
+test "format schema list as json lines" {
+  let schemas : Array[@moon_openapi_cli.SchemaSummary] = [
+    { name: "Pet", title: Some("Pet"), schema_type: Some("object") },
+  ]
+  inspect(
+    @moon_openapi_cli.format_schema_list(
+      schemas,
+      @moon_openapi_cli.SchemaListJsonLines,
+    ),
+    content="{\"name\":\"Pet\",\"title\":\"Pet\",\"type\":\"object\"}",
+  )
+}
+
+///|
+test "format schema list as markdown" {
+  let schemas : Array[@moon_openapi_cli.SchemaSummary] = [
+    { name: "Pet", title: Some("Pet"), schema_type: Some("object") },
+    { name: "Category", title: None, schema_type: None },
+  ]
+  inspect(
+    @moon_openapi_cli.format_schema_list(
+      schemas,
+      @moon_openapi_cli.SchemaListMarkdown,
+    ),
+    content=(
+      #|- Pet (object) - Pet
+      #|- Category
+    ),
+  )
+}
+
+///|
+test "format schema list as quiet names" {
+  let schemas : Array[@moon_openapi_cli.SchemaSummary] = [
+    { name: "Pet", title: None, schema_type: None },
+    { name: "Category", title: None, schema_type: None },
+  ]
+  inspect(
+    @moon_openapi_cli.format_schema_list(
+      schemas,
+      @moon_openapi_cli.SchemaListQuiet,
+    ),
+    content=(
+      #|Pet
+      #|Category
+    ),
+  )
+}
+
+///|
+test "format schema subset as json" {
+  let subset : @moon_openapi_cli.SchemaSubset = {
+    openapi_version: "3.0.3",
+    name: "Pet",
+    schema: Json::object({ "type": Json::string("object") }),
+    components: Some(Json::object({ "schemas": empty_json_object() })),
+    usages: Some([
+      {
+        operation_id: "listPets",
+        http_method: "GET",
+        path: "/pets",
+        tags: ["pets"],
+        summary: None,
+      },
+    ]),
+    warnings: [],
+  }
+  let output = @moon_openapi_cli.format_schema_subset(
+    subset,
+    @moon_openapi_cli.SchemaGetJson,
+  )
+  assert_true(output.contains("\"openapi\": \"3.0.3\""))
+  assert_true(output.contains("\"components\""))
+  assert_true(output.contains("\"usages\""))
+  assert_true(output.contains("\"operationId\": \"listPets\""))
+}
+
+///|
+test "format schema subset as markdown" {
+  let subset : @moon_openapi_cli.SchemaSubset = {
+    openapi_version: "3.0.3",
+    name: "Pet",
+    schema: Json::object({ "type": Json::string("object") }),
+    components: Some(Json::object({ "schemas": empty_json_object() })),
+    usages: Some([]),
+    warnings: [],
+  }
+  let markdown = @moon_openapi_cli.format_schema_subset(
+    subset,
+    @moon_openapi_cli.SchemaGetMarkdown,
+  )
+  assert_true(markdown.contains("## Pet"))
+  assert_true(markdown.contains("### Schema"))
+  assert_true(markdown.contains("### Components"))
+  assert_true(markdown.contains("### Usages"))
+  assert_true(markdown.contains("- none"))
+}

@@ -102,6 +102,7 @@ fn endpoint_get_openapi() -> String {
     #|  "components": {
     #|    "schemas": {
     #|      "NewPet": {
+    #|        "title": "New pet",
     #|        "type": "object",
     #|        "required": ["name"],
     #|        "properties": {
@@ -111,6 +112,7 @@ fn endpoint_get_openapi() -> String {
     #|        }
     #|      },
     #|      "Pet": {
+    #|        "title": "Pet",
     #|        "allOf": [
     #|          { "$ref": "#/components/schemas/NewPet" },
     #|          {
@@ -123,6 +125,7 @@ fn endpoint_get_openapi() -> String {
     #|        ]
     #|      },
     #|      "Category": {
+    #|        "title": "Category",
     #|        "type": "object",
     #|        "properties": {
     #|          "name": { "type": "string" }
@@ -202,6 +205,17 @@ fn encoded_ref_openapi() -> String {
 }
 
 ///|
+fn no_components_openapi() -> String {
+  (
+    #|{
+    #|  "openapi": "3.0.3",
+    #|  "info": { "title": "No components", "version": "1.0.0" },
+    #|  "paths": {}
+    #|}
+  )
+}
+
+///|
 fn all_options() -> EndpointListOptions {
   endpoint_list_options(None, None)
 }
@@ -209,6 +223,11 @@ fn all_options() -> EndpointListOptions {
 ///|
 fn get_options(no_resolve : Bool) -> EndpointGetOptions {
   endpoint_get_options(no_resolve)
+}
+
+///|
+fn schema_options(with_usages : Bool) -> SchemaGetOptions {
+  schema_get_options(with_usages)
 }
 
 ///|
@@ -352,6 +371,81 @@ test "get endpoint decodes json pointer component names" {
     encoded_ref_openapi(),
     "encoded",
     options=get_options(false),
+  ).unwrap()
+  guard subset.components is Some(Object(components))
+  guard components.get("schemas") is Some(Object(schemas))
+  assert_true(schemas.contains("Slash/Pet"))
+  assert_true(schemas.contains("Tilde~Pet"))
+}
+
+///|
+test "list schemas from components schemas" {
+  let schemas = list_schemas_from_source(endpoint_get_openapi()).unwrap()
+  assert_eq(schemas.map(schema => schema.name), [
+    "Category", "NewPet", "Pet", "Unused",
+  ])
+  assert_eq(schemas[1].title, Some("New pet"))
+  assert_eq(schemas[1].schema_type, Some("object"))
+  assert_eq(schemas[2].title, Some("Pet"))
+  assert_true(schemas[2].schema_type is None)
+}
+
+///|
+test "list schemas treats missing components as empty" {
+  let schemas = list_schemas_from_source(no_components_openapi()).unwrap()
+  assert_eq(schemas.length(), 0)
+}
+
+///|
+test "get schema includes reachable schema components" {
+  let subset = get_schema_from_source(
+    endpoint_get_openapi(),
+    "Pet",
+    options=schema_options(false),
+  ).unwrap()
+  assert_eq(subset.name, "Pet")
+  assert_true(subset.usages is None)
+  assert_eq(subset.warnings, [
+    "unsupported external $ref: external.json#/components/schemas/Photo",
+  ])
+  guard subset.components is Some(Object(components))
+  guard components.get("schemas") is Some(Object(schemas))
+  assert_true(schemas.contains("Pet"))
+  assert_true(schemas.contains("NewPet"))
+  assert_true(schemas.contains("Category"))
+  assert_false(schemas.contains("Unused"))
+}
+
+///|
+test "get schema with usages finds transitive operation usages" {
+  let subset = get_schema_from_source(
+    endpoint_get_openapi(),
+    "Category",
+    options=schema_options(true),
+  ).unwrap()
+  guard subset.usages is Some(usages)
+  assert_eq(usages.map(usage => usage.operation_id), ["listPets", "addPet"])
+  assert_eq(subset.warnings, [
+    "unsupported external $ref: external.json#/components/schemas/Photo",
+  ])
+}
+
+///|
+test "get schema rejects missing schema" {
+  let result = get_schema_from_source(
+    endpoint_get_openapi(),
+    "Missing",
+    options=schema_options(false),
+  )
+  assert_true(result is Err(ResourceNotFound("schema not found: Missing")))
+}
+
+///|
+test "get schema decodes json pointer component names" {
+  let subset = get_schema_from_source(
+    encoded_ref_openapi(),
+    "Slash/Pet",
+    options=schema_options(false),
   ).unwrap()
   guard subset.components is Some(Object(components))
   guard components.get("schemas") is Some(Object(schemas))

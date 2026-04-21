@@ -19,6 +19,21 @@ fn collect_reachable_components(
 }
 
 ///|
+fn collect_schema_components(
+  document : Json,
+  name : String,
+  schema : Json,
+) -> Result[(Json?, Array[String]), ApispecError] {
+  let collection = new_ref_collection()
+  collection.visited_internal[component_key("schemas", name)] = true
+  insert_component(collection, "schemas", name, schema)
+  match scan_refs(schema, document, collection) {
+    Err(err) => Err(err)
+    Ok(_) => Ok((components_to_json(collection), collection.warnings))
+  }
+}
+
+///|
 fn new_ref_collection() -> RefCollection {
   let components : Map[String, Map[String, Json]] = {}
   let warnings : Array[String] = []
