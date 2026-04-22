@@ -45,7 +45,10 @@ fn get_endpoint_normalized(
               let ref_result = if options.no_resolve {
                 Ok((None, []))
               } else {
-                collect_reachable_components(document, candidate.operation)
+                @refs.collect_reachable_components(
+                  document,
+                  candidate.operation,
+                )
               }
               match ref_result {
                 Err(err) => Err(err)

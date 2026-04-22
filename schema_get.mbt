@@ -12,7 +12,7 @@ fn get_schema_normalized(
           match schemas.get(name) {
             None => Err(ResourceNotFound("schema not found: \{name}"))
             Some(schema) =>
-              match collect_schema_components(document, name, schema) {
+              match @refs.collect_schema_components(document, name, schema) {
                 Err(err) => Err(err)
                 Ok((components, warnings)) => {
                   let usage_result = if options.with_usages {

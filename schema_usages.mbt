@@ -11,7 +11,8 @@ fn collect_schema_usages(
       let warnings : Array[String] = []
       let candidates = collect_operation_candidates(paths)
       for candidate in candidates {
-        match collect_reachable_components(document, candidate.operation) {
+        match
+          @refs.collect_reachable_components(document, candidate.operation) {
           Err(err) => return Err(err)
           Ok((components, operation_warnings)) =>
             if reachable_components_contain_schema(components, name) {

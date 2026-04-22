@@ -1,0 +1,20 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "Showichiro/moon_openapi_cli/internal/refs"
+
+import {
+  "Showichiro/moon_openapi_cli/internal/error",
+}
+
+// Values
+pub fn collect_reachable_components(Json, Json) -> Result[(Json?, Array[String]), @error.ApispecError]
+
+pub fn collect_schema_components(Json, String, Json) -> Result[(Json?, Array[String]), @error.ApispecError]
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
+

@@ -1,4 +1,7 @@
 ///|
+using @errors {type ApispecError}
+
+///|
 priv struct RefCollection {
   components : Map[String, Map[String, Json]]
   warnings : Array[String]
@@ -7,7 +10,7 @@ priv struct RefCollection {
 }
 
 ///|
-fn collect_reachable_components(
+pub fn collect_reachable_components(
   document : Json,
   seed : Json,
 ) -> Result[(Json?, Array[String]), ApispecError] {
@@ -19,7 +22,7 @@ fn collect_reachable_components(
 }
 
 ///|
-fn collect_schema_components(
+pub fn collect_schema_components(
   document : Json,
   name : String,
   schema : Json,
@@ -101,7 +104,7 @@ fn collect_ref(
       let section = tokens[1]
       let name = tokens[2]
       match @json_pointer.get(document, tokens) {
-        None => Err(ParseError("unresolved $ref: \{ref_value}"))
+        None => Err(ApispecError::ParseError("unresolved $ref: \{ref_value}"))
         Some(_) => {
           let key = component_key(section, name)
           if collection.visited_internal.contains(key) {
@@ -109,7 +112,8 @@ fn collect_ref(
           } else {
             let root_tokens : Array[String] = ["components", section, name]
             match @json_pointer.get(document, root_tokens) {
-              None => Err(ParseError("unresolved $ref: \{ref_value}"))
+              None =>
+                Err(ApispecError::ParseError("unresolved $ref: \{ref_value}"))
               Some(component) => {
                 collection.visited_internal[key] = true
                 insert_component(collection, section, name, component)
