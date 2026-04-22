@@ -28,7 +28,7 @@ fn get_schema_normalized(
                     Err(err) => Err(err)
                     Ok((usages, usage_warnings)) =>
                       Ok({
-                        openapi_version: openapi_version(root),
+                        openapi_version: @openapi_metadata.openapi_version(root),
                         name,
                         schema,
                         components,

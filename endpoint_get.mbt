@@ -54,7 +54,7 @@ fn get_endpoint_normalized(
                 Err(err) => Err(err)
                 Ok((components, warnings)) =>
                   Ok({
-                    openapi_version: openapi_version(root),
+                    openapi_version: @openapi_metadata.openapi_version(root),
                     endpoint: candidate.endpoint,
                     operation: candidate.operation,
                     components,
@@ -68,14 +68,6 @@ fn get_endpoint_normalized(
         None => Err(ParseError("missing required 'paths' object"))
       }
     _ => Err(ParseError("expected JSON object input"))
-  }
-}
-
-///|
-fn openapi_version(root : Map[String, Json]) -> String {
-  match root.get("openapi") {
-    Some(String(version)) => version
-    _ => "3.0.0"
   }
 }
 

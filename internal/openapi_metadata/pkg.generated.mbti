@@ -1,0 +1,14 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "Showichiro/moon_openapi_cli/internal/openapi_metadata"
+
+// Values
+pub fn openapi_version(Map[String, Json]) -> String
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
+
