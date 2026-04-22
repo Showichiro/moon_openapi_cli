@@ -89,7 +89,7 @@ fn collect_ref(
     warn_once(collection, ref_value, "unsupported external $ref: \{ref_value}")
     Ok(())
   } else {
-    let tokens = decode_pointer_tokens(ref_value)
+    let tokens = @json_pointer.decode_ref(ref_value)
     if tokens.length() < 3 || tokens[0] != "components" {
       warn_once(
         collection,
@@ -100,7 +100,7 @@ fn collect_ref(
     } else {
       let section = tokens[1]
       let name = tokens[2]
-      match get_json_pointer(document, tokens) {
+      match @json_pointer.get(document, tokens) {
         None => Err(ParseError("unresolved $ref: \{ref_value}"))
         Some(_) => {
           let key = component_key(section, name)
@@ -108,7 +108,7 @@ fn collect_ref(
             Ok(())
           } else {
             let root_tokens : Array[String] = ["components", section, name]
-            match get_json_pointer(document, root_tokens) {
+            match @json_pointer.get(document, root_tokens) {
               None => Err(ParseError("unresolved $ref: \{ref_value}"))
               Some(component) => {
                 collection.visited_internal[key] = true
@@ -148,49 +148,6 @@ fn warn_once(
   if !collection.warned_refs.contains(ref_value) {
     collection.warned_refs[ref_value] = true
     collection.warnings.push(message)
-  }
-}
-
-///|
-fn decode_pointer_tokens(ref_value : String) -> Array[String] {
-  ref_value[2:].split("/").map(decode_pointer_token).collect()
-}
-
-///|
-fn decode_pointer_token(token : StringView) -> String {
-  token
-  .replace_all(old="~1", new="/")
-  .replace_all(old="~0", new="~")
-  .to_string()
-}
-
-///|
-fn get_json_pointer(document : Json, tokens : Array[String]) -> Json? {
-  let mut current = document
-  for token in tokens {
-    match current {
-      Object(object) =>
-        match object.get(token) {
-          Some(next) => current = next
-          None => return None
-        }
-      Array(items) =>
-        match parse_array_index(token, items.length()) {
-          Some(index) => current = items[index]
-          None => return None
-        }
-      _ => return None
-    }
-  }
-  Some(current)
-}
-
-///|
-fn parse_array_index(token : String, length : Int) -> Int? {
-  let parsed : Result[Int, _] = try? @string.parse_int(token)
-  match parsed {
-    Ok(index) => if index >= 0 && index < length { Some(index) } else { None }
-    Err(_) => None
   }
 }
 

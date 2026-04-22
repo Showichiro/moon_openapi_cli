@@ -1,5 +1,6 @@
 import {
   "Showichiro/moon_openapi_cli" @lib,
+  "Showichiro/moon_openapi_cli/internal/json_pointer" @json_pointer,
   "moonbitlang/async" @async,
   "moonbitlang/async/http" @http,
   "moonbitlang/core/argparse" @argparse,

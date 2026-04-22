@@ -360,7 +360,7 @@ async fn import_external_target(
   root_kind : RootSpecKind,
   ctx : ExternalRefContext,
 ) -> String? {
-  match get_json_pointer_for_external(source_document, target.import_tokens) {
+  match @json_pointer.get(source_document, target.import_tokens) {
     None => {
       warn_external_once(
         ctx,
@@ -511,19 +511,7 @@ fn split_ref(ref_value : String) -> (String, String)? {
 
 ///|
 fn decode_ref_fragment(fragment : String) -> Array[String]? {
-  if !fragment.has_prefix("/") {
-    None
-  } else {
-    Some(fragment[1:].split("/").map(decode_external_pointer_token).collect())
-  }
-}
-
-///|
-fn decode_external_pointer_token(token : StringView) -> String {
-  token
-  .replace_all(old="~1", new="/")
-  .replace_all(old="~0", new="~")
-  .to_string()
+  @json_pointer.decode_fragment(fragment)
 }
 
 ///|
@@ -573,12 +561,7 @@ fn external_ref_target(
 
 ///|
 fn encode_internal_ref(tokens : Array[String]) -> String {
-  "#/" + tokens.map(encode_pointer_token).join("/")
-}
-
-///|
-fn encode_pointer_token(token : String) -> String {
-  token.replace_all(old="~", new="~0").replace_all(old="/", new="~1")
+  @json_pointer.encode_ref(tokens)
 }
 
 ///|
@@ -835,39 +818,6 @@ fn replace_refs_in_place(value : Json, rewrites : Map[String, String]) -> Unit {
         replace_refs_in_place(item, rewrites)
       }
     _ => ()
-  }
-}
-
-///|
-fn get_json_pointer_for_external(
-  document : Json,
-  tokens : Array[String],
-) -> Json? {
-  let mut current = document
-  for token in tokens {
-    match current {
-      Object(object) =>
-        match object.get(token) {
-          Some(next) => current = next
-          None => return None
-        }
-      Array(items) =>
-        match parse_array_index_for_external(token, items.length()) {
-          Some(index) => current = items[index]
-          None => return None
-        }
-      _ => return None
-    }
-  }
-  Some(current)
-}
-
-///|
-fn parse_array_index_for_external(token : String, length : Int) -> Int? {
-  let parsed : Result[Int, _] = try? @string.parse_int(token)
-  match parsed {
-    Ok(index) => if index >= 0 && index < length { Some(index) } else { None }
-    Err(_) => None
   }
 }
 

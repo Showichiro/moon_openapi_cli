@@ -1,0 +1,20 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "Showichiro/moon_openapi_cli/internal/json_pointer"
+
+// Values
+pub fn decode_fragment(String) -> Array[String]?
+
+pub fn decode_ref(String) -> Array[String]
+
+pub fn encode_ref(Array[String]) -> String
+
+pub fn get(Json, Array[String]) -> Json?
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
+
