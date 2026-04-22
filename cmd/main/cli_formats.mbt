@@ -8,7 +8,8 @@ fn resolve_endpoint_search_format(
     match option_value(matches, "format").unwrap_or("json") {
       "json" => Ok(@lib.EndpointSearchJsonLines)
       "md" => Ok(@lib.EndpointSearchMarkdown)
-      value => Err(@lib.UsageError("unsupported format: \{value}"))
+      value =>
+        Err(@lib.ApispecError::UsageError("unsupported format: \{value}"))
     }
   }
 }
@@ -23,7 +24,8 @@ fn resolve_schema_search_format(
     match option_value(matches, "format").unwrap_or("json") {
       "json" => Ok(@lib.SchemaSearchJsonLines)
       "md" => Ok(@lib.SchemaSearchMarkdown)
-      value => Err(@lib.UsageError("unsupported format: \{value}"))
+      value =>
+        Err(@lib.ApispecError::UsageError("unsupported format: \{value}"))
     }
   }
 }
@@ -38,7 +40,8 @@ fn resolve_list_format(
     match option_value(matches, "format").unwrap_or("json") {
       "json" => Ok(@lib.JsonLines)
       "md" => Ok(@lib.Markdown)
-      value => Err(@lib.UsageError("unsupported format: \{value}"))
+      value =>
+        Err(@lib.ApispecError::UsageError("unsupported format: \{value}"))
     }
   }
 }
@@ -50,7 +53,7 @@ fn resolve_get_format(
   match option_value(matches, "format").unwrap_or("json") {
     "json" => Ok(@lib.EndpointGetJson)
     "md" => Ok(@lib.EndpointGetMarkdown)
-    value => Err(@lib.UsageError("unsupported format: \{value}"))
+    value => Err(@lib.ApispecError::UsageError("unsupported format: \{value}"))
   }
 }
 
@@ -64,7 +67,8 @@ fn resolve_schema_list_format(
     match option_value(matches, "format").unwrap_or("json") {
       "json" => Ok(@lib.SchemaListJsonLines)
       "md" => Ok(@lib.SchemaListMarkdown)
-      value => Err(@lib.UsageError("unsupported format: \{value}"))
+      value =>
+        Err(@lib.ApispecError::UsageError("unsupported format: \{value}"))
     }
   }
 }
@@ -76,7 +80,7 @@ fn resolve_schema_get_format(
   match option_value(matches, "format").unwrap_or("json") {
     "json" => Ok(@lib.SchemaGetJson)
     "md" => Ok(@lib.SchemaGetMarkdown)
-    value => Err(@lib.UsageError("unsupported format: \{value}"))
+    value => Err(@lib.ApispecError::UsageError("unsupported format: \{value}"))
   }
 }
 
@@ -88,6 +92,7 @@ fn resolve_warning_format(
     "text" => Ok(WarningText)
     "json" => Ok(WarningJson)
     "none" => Ok(WarningNone)
-    value => Err(@lib.UsageError("unsupported warnings: \{value}"))
+    value =>
+      Err(@lib.ApispecError::UsageError("unsupported warnings: \{value}"))
   }
 }

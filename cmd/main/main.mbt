@@ -8,7 +8,7 @@ async fn main {
   let parsed : Result[@argparse.Matches, _] = try? command().parse(argv~)
   match parsed {
     Ok(matches) => dispatch(matches)
-    Err(err) => exit_with_error(@lib.UsageError(err.to_string()))
+    Err(err) => exit_with_error(@lib.ApispecError::UsageError(err.to_string()))
   }
 }
 
@@ -22,16 +22,22 @@ async fn dispatch(matches : @argparse.Matches) -> Unit {
         Some(("ls", ls_matches)) => endpoint_ls(ls_matches)
         Some(("get", get_matches)) => endpoint_get(get_matches)
         Some(("search", search_matches)) => endpoint_search(search_matches)
-        _ => exit_with_error(@lib.UsageError("missing endpoint subcommand"))
+        _ =>
+          exit_with_error(
+            @lib.ApispecError::UsageError("missing endpoint subcommand"),
+          )
       }
     Some(("schema", schema_matches)) =>
       match schema_matches.subcommand {
         Some(("ls", ls_matches)) => schema_ls(ls_matches)
         Some(("get", get_matches)) => schema_get(get_matches)
         Some(("search", search_matches)) => schema_search(search_matches)
-        _ => exit_with_error(@lib.UsageError("missing schema subcommand"))
+        _ =>
+          exit_with_error(
+            @lib.ApispecError::UsageError("missing schema subcommand"),
+          )
       }
-    _ => exit_with_error(@lib.UsageError("missing subcommand"))
+    _ => exit_with_error(@lib.ApispecError::UsageError("missing subcommand"))
   }
 }
 

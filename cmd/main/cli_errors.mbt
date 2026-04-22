@@ -58,13 +58,13 @@ async fn exit_with_operation_error(
   file : String,
 ) -> Unit {
   match err {
-    @lib.ResourceNotFound(_) =>
+    @lib.ApispecError::ResourceNotFound(_) =>
       exit_with_error_context(
         err,
         Some(target),
         Some(endpoint_not_found_suggestion(target, content, file)),
       )
-    @lib.AmbiguousMatch(_) =>
+    @lib.ApispecError::AmbiguousMatch(_) =>
       exit_with_error_context(
         err,
         Some(target),
@@ -82,7 +82,7 @@ async fn exit_with_schema_error(
   file : String,
 ) -> Unit {
   match err {
-    @lib.ResourceNotFound(_) =>
+    @lib.ApispecError::ResourceNotFound(_) =>
       exit_with_error_context(
         err,
         Some(name),

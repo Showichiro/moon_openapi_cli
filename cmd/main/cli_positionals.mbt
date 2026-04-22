@@ -7,9 +7,9 @@ fn positional_target(
       match values.length() {
         1 => Ok(values[0])
         2 => Ok(values[0] + " " + values[1])
-        _ => Err(@lib.UsageError("expected one endpoint target"))
+        _ => Err(@lib.ApispecError::UsageError("expected one endpoint target"))
       }
-    None => Err(@lib.UsageError("expected one endpoint target"))
+    None => Err(@lib.ApispecError::UsageError("expected one endpoint target"))
   }
 }
 
@@ -23,9 +23,9 @@ fn single_positional(
       if values.length() == 1 {
         Ok(values[0])
       } else {
-        Err(@lib.UsageError("expected one \{name} value"))
+        Err(@lib.ApispecError::UsageError("expected one \{name} value"))
       }
-    None => Err(@lib.UsageError("expected one \{name} value"))
+    None => Err(@lib.ApispecError::UsageError("expected one \{name} value"))
   }
 }
 
@@ -39,8 +39,11 @@ fn joined_positional(
       if values.length() > 0 {
         Ok(values.join(" "))
       } else {
-        Err(@lib.UsageError("expected one or more \{name} values"))
+        Err(
+          @lib.ApispecError::UsageError("expected one or more \{name} values"),
+        )
       }
-    None => Err(@lib.UsageError("expected one or more \{name} values"))
+    None =>
+      Err(@lib.ApispecError::UsageError("expected one or more \{name} values"))
   }
 }

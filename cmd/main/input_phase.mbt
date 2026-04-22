@@ -13,5 +13,5 @@ async fn read_command_input(
 ///|
 async fn exit_with_input_error(trace : VerboseTrace, message : String) -> Unit {
   write_trace_total(trace)
-  exit_with_error(@lib.ParseError(message))
+  exit_with_error(@lib.ApispecError::ParseError(message))
 }

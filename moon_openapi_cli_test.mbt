@@ -372,10 +372,12 @@ test "describe command rejects unknown descriptor" {
 ///|
 test "error json can include input and suggestion" {
   inspect(
-    @moon_openapi_cli.UsageError("bad input").to_stderr_json(),
+    @moon_openapi_cli.ApispecError::UsageError("bad input").to_stderr_json(),
     content="{\"error\":\"usage_error\",\"message\":\"bad input\"}",
   )
-  let output = @moon_openapi_cli.UsageError("unsupported format: yaml").to_stderr_json_with_context(
+  let output = @moon_openapi_cli.ApispecError::UsageError(
+    "unsupported format: yaml",
+  ).to_stderr_json_with_context(
     Some("yaml"),
     Some("supported formats: json, md"),
   )

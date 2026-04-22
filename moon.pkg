@@ -1,5 +1,6 @@
 import {
   "Showichiro/moon_openapi_cli/internal/describe" @describe,
+  "Showichiro/moon_openapi_cli/internal/error" @errors,
   "Showichiro/moon_openapi_cli/internal/http_method" @http_method,
   "Showichiro/moon_openapi_cli/internal/json_pointer" @json_pointer,
   "Showichiro/moon_openapi_cli/internal/search" @search,

@@ -184,7 +184,7 @@ test "resolve warning format rejects unsupported value" {
   guard endpoint_matches.subcommand is Some(("get", get_matches))
   assert_true(
     resolve_warning_format(get_matches)
-    is Err(@lib.UsageError("unsupported warnings: yaml")),
+    is Err(@lib.ApispecError::UsageError("unsupported warnings: yaml")),
   )
 }
 
@@ -220,7 +220,7 @@ test "resolve limit rejects unsupported value" {
   guard endpoint_matches.subcommand is Some(("search", search_matches))
   assert_true(
     resolve_limit(search_matches)
-    is Err(@lib.UsageError("unsupported limit: zero")),
+    is Err(@lib.ApispecError::UsageError("unsupported limit: zero")),
   )
 }
 
