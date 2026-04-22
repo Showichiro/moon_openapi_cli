@@ -149,24 +149,9 @@ async fn rewrite_imported_component(
     Object(object) => {
       let rewritten : Map[String, Json] = {}
       for key, child in object {
-        if key == "$ref" {
-          match child {
-            String(ref_value) =>
-              match
-                import_external_ref(
-                  ref_value, source_document, source_location, root, root_kind, ctx,
-                ) {
-                Some(internal_ref) =>
-                  rewritten[key] = Json::string(internal_ref)
-                None => rewritten[key] = child
-              }
-            _ => rewritten[key] = child
-          }
-        } else {
-          rewritten[key] = rewrite_imported_component(
-            child, source_document, source_location, root, root_kind, ctx,
-          )
-        }
+        rewritten[key] = rewrite_imported_object_entry(
+          key, child, source_document, source_location, root, root_kind, ctx,
+        )
       }
       Json::object(rewritten)
     }
@@ -182,6 +167,49 @@ async fn rewrite_imported_component(
       Json::array(rewritten)
     }
     _ => value
+  }
+}
+
+///|
+async fn rewrite_imported_object_entry(
+  key : String,
+  child : Json,
+  source_document : Json,
+  source_location : RefDocumentLocation,
+  root : Map[String, Json],
+  root_kind : RootSpecKind,
+  ctx : ExternalRefContext,
+) -> Json {
+  if key == "$ref" {
+    rewrite_imported_ref(
+      child, source_document, source_location, root, root_kind, ctx,
+    )
+  } else {
+    rewrite_imported_component(
+      child, source_document, source_location, root, root_kind, ctx,
+    )
+  }
+}
+
+///|
+async fn rewrite_imported_ref(
+  child : Json,
+  source_document : Json,
+  source_location : RefDocumentLocation,
+  root : Map[String, Json],
+  root_kind : RootSpecKind,
+  ctx : ExternalRefContext,
+) -> Json {
+  match child {
+    String(ref_value) =>
+      match
+        import_external_ref(
+          ref_value, source_document, source_location, root, root_kind, ctx,
+        ) {
+        Some(internal_ref) => Json::string(internal_ref)
+        None => child
+      }
+    _ => child
   }
 }
 
