@@ -6,7 +6,7 @@ fn get_schema_normalized(
 ) -> Result[SchemaSubset, ApispecError] {
   match document {
     Object(root) =>
-      match extract_schema_map(root) {
+      match @schema_metadata.extract_schema_map(root) {
         Err(err) => Err(err)
         Ok(schemas) =>
           match schemas.get(name) {

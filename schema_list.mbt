@@ -4,7 +4,7 @@ fn list_schemas_normalized(
 ) -> Result[Array[SchemaSummary], ApispecError] {
   match document {
     Object(root) =>
-      match extract_schema_map(root) {
+      match @schema_metadata.extract_schema_map(root) {
         Err(err) => Err(err)
         Ok(schemas) => Ok(extract_schema_summaries(schemas))
       }
