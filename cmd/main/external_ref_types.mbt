@@ -1,12 +1,6 @@
 ///|
-priv struct ResolvedEndpointExtraction {
-  subset : @lib.EndpointSubset
-  warnings : Array[String]
-}
-
-///|
-priv struct ResolvedSchemaExtraction {
-  subset : @lib.SchemaSubset
+priv struct ResolvedExtraction[Subset] {
+  subset : Subset
   warnings : Array[String]
 }
 
