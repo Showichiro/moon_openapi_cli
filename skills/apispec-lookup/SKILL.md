@@ -54,9 +54,11 @@ transitively reference the schema.
 - Use `-f <path>` for a file.
 - Use `-f <http(s) URL>` for a remote JSON OpenAPI or Swagger document.
 - Use `-f -` for stdin.
-- Reachable external JSON `$ref` values are resolved by `endpoint get` and
-  `schema get` for file and `http(s)` inputs. For stdin, use absolute
-  `http(s)` refs because relative refs have no base location.
+- `endpoint get` and `schema get` include reachable components in the emitted
+  subset. Internal `$ref` values stay as `$ref` references, while external JSON
+  `$ref` values are imported and rewritten to internal refs for file and
+  `http(s)` inputs. For stdin, use absolute `http(s)` refs because relative
+  refs have no base location.
 - Convert YAML before calling `apispec`:
 
 ```bash
