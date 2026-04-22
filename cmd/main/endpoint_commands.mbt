@@ -1,0 +1,207 @@
+///|
+async fn endpoint_ls(matches : @argparse.Matches) -> Unit {
+  let trace = new_verbose_trace(matches)
+  let file = option_value(matches, "file").unwrap_or("-")
+  let content_result = read_input_with_trace(trace, file)
+  match content_result {
+    Err(message) => {
+      write_trace_total(trace)
+      exit_with_error(@lib.ParseError(message))
+    }
+    Ok(content) => {
+      let options = @lib.endpoint_list_options(
+        option_value(matches, "tag"),
+        option_value(matches, "method"),
+      )
+      let extract_start = trace_now_ms()
+      match @lib.list_endpoints_from_source(content, options~) {
+        Err(err) => {
+          write_trace_phase(trace, "extract", extract_start, trace_now_ms())
+          write_trace_total(trace)
+          exit_with_error(err)
+        }
+        Ok(endpoints) => {
+          write_trace_phase(trace, "extract", extract_start, trace_now_ms())
+          let format_start = trace_now_ms()
+          let format = resolve_list_format(matches)
+          match format {
+            Err(err) => {
+              write_trace_phase(trace, "format", format_start, trace_now_ms())
+              write_trace_total(trace)
+              exit_with_format_error(err, matches)
+            }
+            Ok(format) => {
+              let output = @lib.format_endpoint_list(endpoints, format)
+              write_trace_phase(trace, "format", format_start, trace_now_ms())
+              write_trace_total(trace)
+              exit_success_output(output)
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+///|
+async fn endpoint_get(matches : @argparse.Matches) -> Unit {
+  let trace = new_verbose_trace(matches)
+  let target_result = positional_target(matches)
+  match target_result {
+    Err(err) => {
+      write_trace_total(trace)
+      exit_with_error(err)
+    }
+    Ok(target) => {
+      let file = option_value(matches, "file").unwrap_or("-")
+      let content_result = read_input_with_trace(trace, file)
+      match content_result {
+        Err(message) => {
+          write_trace_total(trace)
+          exit_with_error(@lib.ParseError(message))
+        }
+        Ok(content) => {
+          let options = @lib.endpoint_get_options(
+            matches.flags.get_or_default("no-resolve", false),
+          )
+          let extract_start = trace_now_ms()
+          match
+            resolve_endpoint_with_external_refs(content, file, target, options) {
+            Err(err) => {
+              write_trace_phase(trace, "extract", extract_start, trace_now_ms())
+              write_trace_total(trace)
+              exit_with_operation_error(err, target, content, file)
+            }
+            Ok(resolved) => {
+              write_trace_phase(trace, "extract", extract_start, trace_now_ms())
+              match resolve_warning_format(matches) {
+                Err(err) => {
+                  write_trace_total(trace)
+                  exit_with_warning_format_error(err, matches)
+                }
+                Ok(warning_format) => {
+                  write_warnings(resolved.warnings, warning_format)
+                  let format_start = trace_now_ms()
+                  let format = resolve_get_format(matches)
+                  match format {
+                    Err(err) => {
+                      write_trace_phase(
+                        trace,
+                        "format",
+                        format_start,
+                        trace_now_ms(),
+                      )
+                      write_trace_total(trace)
+                      exit_with_format_error(err, matches)
+                    }
+                    Ok(format) => {
+                      let output = @lib.format_endpoint_subset(
+                        resolved.subset,
+                        format,
+                      )
+                      write_trace_phase(
+                        trace,
+                        "format",
+                        format_start,
+                        trace_now_ms(),
+                      )
+                      write_trace_total(trace)
+                      exit_success_output(output)
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+///|
+async fn endpoint_search(matches : @argparse.Matches) -> Unit {
+  let trace = new_verbose_trace(matches)
+  let query_result = joined_positional(matches, "query")
+  match query_result {
+    Err(err) => {
+      write_trace_total(trace)
+      exit_with_error(err)
+    }
+    Ok(query) => {
+      let limit_result = resolve_limit(matches)
+      match limit_result {
+        Err(err) => {
+          write_trace_total(trace)
+          exit_with_limit_error(err, matches)
+        }
+        Ok(limit) => {
+          let file = option_value(matches, "file").unwrap_or("-")
+          let content_result = read_input_with_trace(trace, file)
+          match content_result {
+            Err(message) => {
+              write_trace_total(trace)
+              exit_with_error(@lib.ParseError(message))
+            }
+            Ok(content) => {
+              let options = @lib.endpoint_search_options(
+                option_value(matches, "tag"),
+                option_value(matches, "method"),
+                limit,
+              )
+              let extract_start = trace_now_ms()
+              match
+                @lib.search_endpoints_from_source(content, query, options~) {
+                Err(err) => {
+                  write_trace_phase(
+                    trace,
+                    "extract",
+                    extract_start,
+                    trace_now_ms(),
+                  )
+                  write_trace_total(trace)
+                  exit_with_error(err)
+                }
+                Ok(results) => {
+                  write_trace_phase(
+                    trace,
+                    "extract",
+                    extract_start,
+                    trace_now_ms(),
+                  )
+                  let format_start = trace_now_ms()
+                  let format = resolve_endpoint_search_format(matches)
+                  match format {
+                    Err(err) => {
+                      write_trace_phase(
+                        trace,
+                        "format",
+                        format_start,
+                        trace_now_ms(),
+                      )
+                      write_trace_total(trace)
+                      exit_with_format_error(err, matches)
+                    }
+                    Ok(format) => {
+                      let output = @lib.format_endpoint_search_results(
+                        results, format,
+                      )
+                      write_trace_phase(
+                        trace,
+                        "format",
+                        format_start,
+                        trace_now_ms(),
+                      )
+                      write_trace_total(trace)
+                      exit_success_output(output)
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
