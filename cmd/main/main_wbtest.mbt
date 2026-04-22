@@ -207,7 +207,8 @@ test "search format honors quiet flag" {
   guard root_matches.subcommand is Some(("schema", schema_matches))
   guard schema_matches.subcommand is Some(("search", search_matches))
   assert_true(
-    resolve_schema_search_format(search_matches) is Ok(@lib.SchemaSearchQuiet),
+    resolve_schema_search_format(search_matches)
+    is Ok(@lib.SchemaSearchFormat::SchemaSearchQuiet),
   )
 }
 

@@ -1,0 +1,90 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "Showichiro/moon_openapi_cli/internal/schema"
+
+import {
+  "Showichiro/moon_openapi_cli/internal/endpoint",
+  "Showichiro/moon_openapi_cli/internal/error",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn format_schema_list(Array[SchemaSummary], SchemaListFormat) -> String
+
+pub fn format_schema_search_results(Array[SchemaSearchResult], SchemaSearchFormat) -> String
+
+pub fn format_schema_subset(SchemaSubset, SchemaGetFormat) -> String
+
+pub fn get_schema(Json, String, options~ : SchemaGetOptions) -> Result[SchemaSubset, @error.ApispecError]
+
+pub fn get_schema_from_source(String, String, options~ : SchemaGetOptions) -> Result[SchemaSubset, @error.ApispecError]
+
+pub fn list_schemas(Json) -> Result[Array[SchemaSummary], @error.ApispecError]
+
+pub fn list_schemas_from_source(String) -> Result[Array[SchemaSummary], @error.ApispecError]
+
+pub fn schema_get_options(Bool) -> SchemaGetOptions
+
+pub fn schema_search_options(Int) -> SchemaSearchOptions
+
+pub fn search_schemas(Json, String, options~ : SchemaSearchOptions) -> Result[Array[SchemaSearchResult], @error.ApispecError]
+
+pub fn search_schemas_from_source(String, String, options~ : SchemaSearchOptions) -> Result[Array[SchemaSearchResult], @error.ApispecError]
+
+// Errors
+
+// Types and methods
+pub(all) enum SchemaGetFormat {
+  SchemaGetJson
+  SchemaGetMarkdown
+} derive(Eq, @debug.Debug)
+
+pub(all) struct SchemaGetOptions {
+  with_usages : Bool
+} derive(Eq, @debug.Debug)
+
+pub(all) enum SchemaListFormat {
+  SchemaListJsonLines
+  SchemaListMarkdown
+  SchemaListQuiet
+} derive(Eq, @debug.Debug)
+
+pub(all) enum SchemaSearchFormat {
+  SchemaSearchJsonLines
+  SchemaSearchMarkdown
+  SchemaSearchQuiet
+} derive(Eq, @debug.Debug)
+
+pub(all) struct SchemaSearchOptions {
+  limit : Int
+} derive(Eq, @debug.Debug)
+
+pub(all) struct SchemaSearchResult {
+  name : String
+  title : String?
+  schema_type : String?
+  score : Int
+  matched_fields : Array[String]
+} derive(Eq, @debug.Debug)
+pub fn SchemaSearchResult::to_json(Self) -> Json
+
+pub(all) struct SchemaSubset {
+  openapi_version : String
+  name : String
+  schema : Json
+  components : Json?
+  usages : Array[@endpoint.EndpointSummary]?
+  warnings : Array[String]
+} derive(Eq, @debug.Debug)
+pub fn SchemaSubset::to_json(Self) -> Json
+
+pub(all) struct SchemaSummary {
+  name : String
+  title : String?
+  schema_type : String?
+} derive(Eq, @debug.Debug)
+pub fn SchemaSummary::to_json(Self) -> Json
+
+// Type aliases
+
+// Traits
+

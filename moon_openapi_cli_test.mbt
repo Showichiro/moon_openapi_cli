@@ -184,7 +184,7 @@ test "format schema list as json lines" {
   inspect(
     @moon_openapi_cli.format_schema_list(
       schemas,
-      @moon_openapi_cli.SchemaListJsonLines,
+      @moon_openapi_cli.SchemaListFormat::SchemaListJsonLines,
     ),
     content="{\"name\":\"Pet\",\"title\":\"Pet\",\"type\":\"object\"}",
   )
@@ -199,7 +199,7 @@ test "format schema list as markdown" {
   inspect(
     @moon_openapi_cli.format_schema_list(
       schemas,
-      @moon_openapi_cli.SchemaListMarkdown,
+      @moon_openapi_cli.SchemaListFormat::SchemaListMarkdown,
     ),
     content=(
       #|- Pet (object) - Pet
@@ -217,7 +217,7 @@ test "format schema list as quiet names" {
   inspect(
     @moon_openapi_cli.format_schema_list(
       schemas,
-      @moon_openapi_cli.SchemaListQuiet,
+      @moon_openapi_cli.SchemaListFormat::SchemaListQuiet,
     ),
     content=(
       #|Pet
@@ -239,13 +239,13 @@ test "format schema search results" {
   ]
   let markdown = @moon_openapi_cli.format_schema_search_results(
     results,
-    @moon_openapi_cli.SchemaSearchMarkdown,
+    @moon_openapi_cli.SchemaSearchFormat::SchemaSearchMarkdown,
   )
   assert_true(markdown.contains("- Pet (object, score: 80) - Pet"))
   inspect(
     @moon_openapi_cli.format_schema_search_results(
       results,
-      @moon_openapi_cli.SchemaSearchQuiet,
+      @moon_openapi_cli.SchemaSearchFormat::SchemaSearchQuiet,
     ),
     content="Pet",
   )
@@ -271,7 +271,7 @@ test "format schema subset as json" {
   }
   let output = @moon_openapi_cli.format_schema_subset(
     subset,
-    @moon_openapi_cli.SchemaGetJson,
+    @moon_openapi_cli.SchemaGetFormat::SchemaGetJson,
   )
   assert_true(output.contains("\"openapi\": \"3.0.3\""))
   assert_true(output.contains("\"components\""))
@@ -291,7 +291,7 @@ test "format schema subset as markdown" {
   }
   let markdown = @moon_openapi_cli.format_schema_subset(
     subset,
-    @moon_openapi_cli.SchemaGetMarkdown,
+    @moon_openapi_cli.SchemaGetFormat::SchemaGetMarkdown,
   )
   assert_true(markdown.contains("## Pet"))
   assert_true(markdown.contains("### Schema"))

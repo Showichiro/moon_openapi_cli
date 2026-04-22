@@ -2,11 +2,5 @@ import {
   "Showichiro/moon_openapi_cli/internal/describe" @describe,
   "Showichiro/moon_openapi_cli/internal/endpoint" @endpoint,
   "Showichiro/moon_openapi_cli/internal/error" @errors,
-  "Showichiro/moon_openapi_cli/internal/markdown" @markdown,
-  "Showichiro/moon_openapi_cli/internal/normalize" @normalize,
-  "Showichiro/moon_openapi_cli/internal/openapi_metadata" @openapi_metadata,
-  "Showichiro/moon_openapi_cli/internal/refs" @refs,
-  "Showichiro/moon_openapi_cli/internal/schema_metadata" @schema_metadata,
-  "Showichiro/moon_openapi_cli/internal/search" @search,
-  "Showichiro/moon_openapi_cli/internal/source" @source,
+  "Showichiro/moon_openapi_cli/internal/schema" @schema,
 }

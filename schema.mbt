@@ -1,26 +1,37 @@
 ///|
+pub using @schema {
+  type SchemaGetFormat,
+  type SchemaGetOptions,
+  type SchemaListFormat,
+  type SchemaSearchFormat,
+  type SchemaSearchOptions,
+  type SchemaSearchResult,
+  type SchemaSubset,
+  type SchemaSummary,
+}
+
+///|
 pub fn schema_get_options(with_usages : Bool) -> SchemaGetOptions {
-  { with_usages, }
+  @schema.schema_get_options(with_usages)
+}
+
+///|
+pub fn schema_search_options(limit : Int) -> SchemaSearchOptions {
+  @schema.schema_search_options(limit)
 }
 
 ///|
 pub fn list_schemas_from_source(
   source : String,
 ) -> Result[Array[SchemaSummary], ApispecError] {
-  match @source.parse_json_object_source(source) {
-    Ok(json) => list_schemas(json)
-    Err(err) => Err(err)
-  }
+  @schema.list_schemas_from_source(source)
 }
 
 ///|
 pub fn list_schemas(
   document : Json,
 ) -> Result[Array[SchemaSummary], ApispecError] {
-  match @normalize.normalize_document(document) {
-    Err(err) => Err(err)
-    Ok(document) => list_schemas_normalized(document)
-  }
+  @schema.list_schemas(document)
 }
 
 ///|
@@ -29,10 +40,7 @@ pub fn get_schema_from_source(
   name : String,
   options~ : SchemaGetOptions,
 ) -> Result[SchemaSubset, ApispecError] {
-  match @source.parse_json_object_source(source) {
-    Ok(json) => get_schema(json, name, options~)
-    Err(err) => Err(err)
-  }
+  @schema.get_schema_from_source(source, name, options~)
 }
 
 ///|
@@ -41,8 +49,47 @@ pub fn get_schema(
   name : String,
   options~ : SchemaGetOptions,
 ) -> Result[SchemaSubset, ApispecError] {
-  match @normalize.normalize_document(document) {
-    Err(err) => Err(err)
-    Ok(document) => get_schema_normalized(document, name, options~)
-  }
+  @schema.get_schema(document, name, options~)
+}
+
+///|
+pub fn search_schemas_from_source(
+  source : String,
+  query : String,
+  options~ : SchemaSearchOptions,
+) -> Result[Array[SchemaSearchResult], ApispecError] {
+  @schema.search_schemas_from_source(source, query, options~)
+}
+
+///|
+pub fn search_schemas(
+  document : Json,
+  query : String,
+  options~ : SchemaSearchOptions,
+) -> Result[Array[SchemaSearchResult], ApispecError] {
+  @schema.search_schemas(document, query, options~)
+}
+
+///|
+pub fn format_schema_list(
+  schemas : Array[SchemaSummary],
+  format : SchemaListFormat,
+) -> String {
+  @schema.format_schema_list(schemas, format)
+}
+
+///|
+pub fn format_schema_search_results(
+  results : Array[SchemaSearchResult],
+  format : SchemaSearchFormat,
+) -> String {
+  @schema.format_schema_search_results(results, format)
+}
+
+///|
+pub fn format_schema_subset(
+  subset : SchemaSubset,
+  format : SchemaGetFormat,
+) -> String {
+  @schema.format_schema_subset(subset, format)
 }

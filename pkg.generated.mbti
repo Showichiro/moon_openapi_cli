@@ -5,7 +5,7 @@ import {
   "Showichiro/moon_openapi_cli/internal/describe",
   "Showichiro/moon_openapi_cli/internal/endpoint",
   "Showichiro/moon_openapi_cli/internal/error",
-  "moonbitlang/core/debug",
+  "Showichiro/moon_openapi_cli/internal/schema",
 }
 
 // Values
@@ -31,93 +31,43 @@ pub fn format_endpoint_search_results(Array[@endpoint.EndpointSearchResult], @en
 
 pub fn format_endpoint_subset(@endpoint.EndpointSubset, @endpoint.EndpointGetFormat) -> String
 
-pub fn format_schema_list(Array[SchemaSummary], SchemaListFormat) -> String
+pub fn format_schema_list(Array[@schema.SchemaSummary], @schema.SchemaListFormat) -> String
 
-pub fn format_schema_search_results(Array[SchemaSearchResult], SchemaSearchFormat) -> String
+pub fn format_schema_search_results(Array[@schema.SchemaSearchResult], @schema.SchemaSearchFormat) -> String
 
-pub fn format_schema_subset(SchemaSubset, SchemaGetFormat) -> String
+pub fn format_schema_subset(@schema.SchemaSubset, @schema.SchemaGetFormat) -> String
 
 pub fn get_endpoint(Json, String, options~ : @endpoint.EndpointGetOptions) -> Result[@endpoint.EndpointSubset, @error.ApispecError]
 
 pub fn get_endpoint_from_source(String, String, options~ : @endpoint.EndpointGetOptions) -> Result[@endpoint.EndpointSubset, @error.ApispecError]
 
-pub fn get_schema(Json, String, options~ : SchemaGetOptions) -> Result[SchemaSubset, @error.ApispecError]
+pub fn get_schema(Json, String, options~ : @schema.SchemaGetOptions) -> Result[@schema.SchemaSubset, @error.ApispecError]
 
-pub fn get_schema_from_source(String, String, options~ : SchemaGetOptions) -> Result[SchemaSubset, @error.ApispecError]
+pub fn get_schema_from_source(String, String, options~ : @schema.SchemaGetOptions) -> Result[@schema.SchemaSubset, @error.ApispecError]
 
 pub fn list_endpoints(Json, options~ : @endpoint.EndpointListOptions) -> Result[Array[@endpoint.EndpointSummary], @error.ApispecError]
 
 pub fn list_endpoints_from_source(String, options~ : @endpoint.EndpointListOptions) -> Result[Array[@endpoint.EndpointSummary], @error.ApispecError]
 
-pub fn list_schemas(Json) -> Result[Array[SchemaSummary], @error.ApispecError]
+pub fn list_schemas(Json) -> Result[Array[@schema.SchemaSummary], @error.ApispecError]
 
-pub fn list_schemas_from_source(String) -> Result[Array[SchemaSummary], @error.ApispecError]
+pub fn list_schemas_from_source(String) -> Result[Array[@schema.SchemaSummary], @error.ApispecError]
 
-pub fn schema_get_options(Bool) -> SchemaGetOptions
+pub fn schema_get_options(Bool) -> @schema.SchemaGetOptions
 
-pub fn schema_search_options(Int) -> SchemaSearchOptions
+pub fn schema_search_options(Int) -> @schema.SchemaSearchOptions
 
 pub fn search_endpoints(Json, String, options~ : @endpoint.EndpointSearchOptions) -> Result[Array[@endpoint.EndpointSearchResult], @error.ApispecError]
 
 pub fn search_endpoints_from_source(String, String, options~ : @endpoint.EndpointSearchOptions) -> Result[Array[@endpoint.EndpointSearchResult], @error.ApispecError]
 
-pub fn search_schemas(Json, String, options~ : SchemaSearchOptions) -> Result[Array[SchemaSearchResult], @error.ApispecError]
+pub fn search_schemas(Json, String, options~ : @schema.SchemaSearchOptions) -> Result[Array[@schema.SchemaSearchResult], @error.ApispecError]
 
-pub fn search_schemas_from_source(String, String, options~ : SchemaSearchOptions) -> Result[Array[SchemaSearchResult], @error.ApispecError]
+pub fn search_schemas_from_source(String, String, options~ : @schema.SchemaSearchOptions) -> Result[Array[@schema.SchemaSearchResult], @error.ApispecError]
 
 // Errors
 
 // Types and methods
-pub(all) enum SchemaGetFormat {
-  SchemaGetJson
-  SchemaGetMarkdown
-} derive(Eq, @debug.Debug)
-
-pub(all) struct SchemaGetOptions {
-  with_usages : Bool
-} derive(Eq, @debug.Debug)
-
-pub(all) enum SchemaListFormat {
-  SchemaListJsonLines
-  SchemaListMarkdown
-  SchemaListQuiet
-} derive(Eq, @debug.Debug)
-
-pub(all) enum SchemaSearchFormat {
-  SchemaSearchJsonLines
-  SchemaSearchMarkdown
-  SchemaSearchQuiet
-} derive(Eq, @debug.Debug)
-
-pub(all) struct SchemaSearchOptions {
-  limit : Int
-} derive(Eq, @debug.Debug)
-
-pub(all) struct SchemaSearchResult {
-  name : String
-  title : String?
-  schema_type : String?
-  score : Int
-  matched_fields : Array[String]
-} derive(Eq, @debug.Debug)
-pub fn SchemaSearchResult::to_json(Self) -> Json
-
-pub(all) struct SchemaSubset {
-  openapi_version : String
-  name : String
-  schema : Json
-  components : Json?
-  usages : Array[@endpoint.EndpointSummary]?
-  warnings : Array[String]
-} derive(Eq, @debug.Debug)
-pub fn SchemaSubset::to_json(Self) -> Json
-
-pub(all) struct SchemaSummary {
-  name : String
-  title : String?
-  schema_type : String?
-} derive(Eq, @debug.Debug)
-pub fn SchemaSummary::to_json(Self) -> Json
 
 // Type aliases
 pub using @error {type ApispecError}
@@ -141,6 +91,22 @@ pub using @endpoint {type EndpointSearchResult}
 pub using @endpoint {type EndpointSubset}
 
 pub using @endpoint {type EndpointSummary}
+
+pub using @schema {type SchemaGetFormat}
+
+pub using @schema {type SchemaGetOptions}
+
+pub using @schema {type SchemaListFormat}
+
+pub using @schema {type SchemaSearchFormat}
+
+pub using @schema {type SchemaSearchOptions}
+
+pub using @schema {type SchemaSearchResult}
+
+pub using @schema {type SchemaSubset}
+
+pub using @schema {type SchemaSummary}
 
 // Traits
 
