@@ -1,4 +1,5 @@
 import {
+  "Showichiro/moon_openapi_cli/internal/describe" @describe,
   "Showichiro/moon_openapi_cli/internal/json_pointer" @json_pointer,
   "moonbitlang/core/json" @json,
 }
