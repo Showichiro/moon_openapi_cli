@@ -31,6 +31,13 @@ priv struct ExternalRefRewrite {
 }
 
 ///|
+priv enum ExternalRefAdvance {
+  ExternalRefsResolved
+  ExternalRefsUnchanged
+  ExternalRefsRewritten(String)
+}
+
+///|
 priv struct ExternalRefContext {
   cache : Map[String, Json]
   warnings : Array[String]
@@ -72,26 +79,22 @@ async fn resolve_endpoint_with_external_refs(
     for _ in 0..<EXTERNAL_REF_MAX_PASSES {
       match @lib.get_endpoint_from_source(current, target, options~) {
         Err(err) => return Err(err)
-        Ok(subset) => {
-          let refs = unresolved_external_refs(subset.warnings, blocked)
-          if refs.length() == 0 {
-            return Ok({
-              subset,
-              warnings: merge_cli_warnings(accumulated, subset.warnings),
-            })
+        Ok(subset) =>
+          match
+            advance_external_ref_resolution(
+              current,
+              location,
+              subset.warnings,
+              accumulated,
+              blocked,
+            ) {
+            ExternalRefsRewritten(source) => current = source
+            ExternalRefsResolved | ExternalRefsUnchanged =>
+              return Ok({
+                subset,
+                warnings: merge_cli_warnings(accumulated, subset.warnings),
+              })
           }
-          let rewrite = rewrite_external_refs_once(current, location, refs)
-          append_cli_warnings(accumulated, rewrite.warnings)
-          mark_blocked_refs(blocked, rewrite.warnings)
-          if rewrite.changed {
-            current = rewrite.source
-          } else {
-            return Ok({
-              subset,
-              warnings: merge_cli_warnings(accumulated, subset.warnings),
-            })
-          }
-        }
       }
     }
     match @lib.get_endpoint_from_source(current, target, options~) {
@@ -123,26 +126,22 @@ async fn resolve_schema_with_external_refs(
   for _ in 0..<EXTERNAL_REF_MAX_PASSES {
     match @lib.get_schema_from_source(current, name, options~) {
       Err(err) => return Err(err)
-      Ok(subset) => {
-        let refs = unresolved_external_refs(subset.warnings, blocked)
-        if refs.length() == 0 {
-          return Ok({
-            subset,
-            warnings: merge_cli_warnings(accumulated, subset.warnings),
-          })
+      Ok(subset) =>
+        match
+          advance_external_ref_resolution(
+            current,
+            location,
+            subset.warnings,
+            accumulated,
+            blocked,
+          ) {
+          ExternalRefsRewritten(source) => current = source
+          ExternalRefsResolved | ExternalRefsUnchanged =>
+            return Ok({
+              subset,
+              warnings: merge_cli_warnings(accumulated, subset.warnings),
+            })
         }
-        let rewrite = rewrite_external_refs_once(current, location, refs)
-        append_cli_warnings(accumulated, rewrite.warnings)
-        mark_blocked_refs(blocked, rewrite.warnings)
-        if rewrite.changed {
-          current = rewrite.source
-        } else {
-          return Ok({
-            subset,
-            warnings: merge_cli_warnings(accumulated, subset.warnings),
-          })
-        }
-      }
     }
   }
   match @lib.get_schema_from_source(current, name, options~) {
@@ -152,6 +151,29 @@ async fn resolve_schema_with_external_refs(
         "external $ref resolution stopped: maximum pass count reached",
       )
       Ok({ subset, warnings: merge_cli_warnings(accumulated, subset.warnings) })
+    }
+  }
+}
+
+///|
+async fn advance_external_ref_resolution(
+  source : String,
+  location : RefDocumentLocation,
+  warnings : Array[String],
+  accumulated : Array[String],
+  blocked : Map[String, Bool],
+) -> ExternalRefAdvance {
+  let refs = unresolved_external_refs(warnings, blocked)
+  if refs.length() == 0 {
+    ExternalRefsResolved
+  } else {
+    let rewrite = rewrite_external_refs_once(source, location, refs)
+    append_cli_warnings(accumulated, rewrite.warnings)
+    mark_blocked_refs(blocked, rewrite.warnings)
+    if rewrite.changed {
+      ExternalRefsRewritten(rewrite.source)
+    } else {
+      ExternalRefsUnchanged
     }
   }
 }
