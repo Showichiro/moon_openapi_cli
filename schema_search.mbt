@@ -10,7 +10,7 @@ fn search_schemas_normalized(
         Err(err) => Err(err)
         Ok(schemas) => {
           let results : Array[SchemaSearchResult] = []
-          let terms = build_search_terms(query)
+          let terms = @search.build_search_terms(query)
           for name, schema in schemas {
             let result = score_schema(name, schema, terms)
             if result.score > 0 {
@@ -29,12 +29,12 @@ fn search_schemas_normalized(
 fn score_schema(
   name : String,
   schema : Json,
-  terms : SearchTerms,
+  terms : @search.SearchTerms,
 ) -> SchemaSearchResult {
   let summary = schema_summary(name, schema)
   let matched_fields : Array[String] = []
   let mut score = 0
-  score += score_field(
+  score += @search.score_field(
     summary.name,
     terms,
     "name",
@@ -44,7 +44,7 @@ fn score_schema(
     token=24,
   )
   if summary.title is Some(title) {
-    score += score_field(
+    score += @search.score_field(
       title,
       terms,
       "title",
@@ -55,7 +55,7 @@ fn score_schema(
     )
   }
   if summary.schema_type is Some(schema_type) {
-    score += score_field(
+    score += @search.score_field(
       schema_type,
       terms,
       "type",
@@ -68,7 +68,7 @@ fn score_schema(
   if schema is Object(object) {
     match object.get("description") {
       Some(String(description)) =>
-        score += score_field(
+        score += @search.score_field(
           description,
           terms,
           "description",
@@ -82,7 +82,7 @@ fn score_schema(
     match object.get("properties") {
       Some(Object(properties)) =>
         for property, _ in properties {
-          score += score_field(
+          score += @search.score_field(
             property,
             terms,
             "properties",
@@ -95,9 +95,9 @@ fn score_schema(
       _ => ()
     }
   }
-  score += coverage_bonus(
+  score += @search.coverage_bonus(
     terms,
-    count_matched_groups(schema_search_values(summary, schema), terms),
+    @search.count_matched_groups(schema_search_values(summary, schema), terms),
   )
   if matched_fields.length() == 1 && matched_fields[0] == "properties" {
     score = score / 2

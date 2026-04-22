@@ -1,20 +1,15 @@
 ///|
-priv struct SearchTermGroup {
-  alternatives : Array[String]
-}
-
-///|
-priv struct SearchTerms {
+pub struct SearchTerms {
   phrase : String
   tokens : Array[String]
-  groups : Array[SearchTermGroup]
+  groups : Array[Array[String]]
 }
 
 ///|
-fn build_search_terms(query : String) -> SearchTerms {
+pub fn build_search_terms(query : String) -> SearchTerms {
   let phrase = normalize_search_text(query)
   let tokens : Array[String] = []
-  let groups : Array[SearchTermGroup] = []
+  let groups : Array[Array[String]] = []
   for view in phrase.split(" ") {
     let token = view.to_string()
     if !token.is_empty() {
@@ -24,7 +19,7 @@ fn build_search_terms(query : String) -> SearchTerms {
       for alternative in alternatives {
         add_unique_token(tokens, alternative)
       }
-      groups.push({ alternatives, })
+      groups.push(alternatives)
     }
   }
   { phrase, tokens, groups }
@@ -64,7 +59,7 @@ fn add_unique_token(tokens : Array[String], token : String) -> Unit {
 }
 
 ///|
-fn count_matched_groups(values : Array[String], terms : SearchTerms) -> Int {
+pub fn count_matched_groups(values : Array[String], terms : SearchTerms) -> Int {
   let normalized_values = values.map(value => normalize_search_text(value))
   let mut matched = 0
   for group in terms.groups {
@@ -78,10 +73,10 @@ fn count_matched_groups(values : Array[String], terms : SearchTerms) -> Int {
 ///|
 fn group_matches(
   normalized_values : Array[String],
-  group : SearchTermGroup,
+  group : Array[String],
 ) -> Bool {
   let mut found = false
-  for term in group.alternatives {
+  for term in group {
     for value in normalized_values {
       if value.contains(term) {
         found = true
@@ -92,7 +87,7 @@ fn group_matches(
 }
 
 ///|
-fn coverage_bonus(terms : SearchTerms, matched : Int) -> Int {
+pub fn coverage_bonus(terms : SearchTerms, matched : Int) -> Int {
   let total = terms.groups.length()
   if total == 0 {
     0
@@ -106,7 +101,7 @@ fn coverage_bonus(terms : SearchTerms, matched : Int) -> Int {
 }
 
 ///|
-fn score_field(
+pub fn score_field(
   value : String,
   terms : SearchTerms,
   field : String,

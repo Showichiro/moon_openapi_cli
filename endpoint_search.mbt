@@ -5,7 +5,7 @@ fn score_endpoint_results(
   limit : Int,
 ) -> Array[EndpointSearchResult] {
   let scored : Array[EndpointSearchResult] = []
-  let terms = build_search_terms(query)
+  let terms = @search.build_search_terms(query)
   for endpoint in endpoints {
     let result = score_endpoint(endpoint, terms)
     if result.score > 0 {
@@ -19,11 +19,11 @@ fn score_endpoint_results(
 ///|
 fn score_endpoint(
   endpoint : EndpointSummary,
-  terms : SearchTerms,
+  terms : @search.SearchTerms,
 ) -> EndpointSearchResult {
   let matched_fields : Array[String] = []
   let mut score = 0
-  score += score_field(
+  score += @search.score_field(
     endpoint.operation_id,
     terms,
     "operationId",
@@ -32,7 +32,7 @@ fn score_endpoint(
     phrase=80,
     token=24,
   )
-  score += score_field(
+  score += @search.score_field(
     endpoint.http_method,
     terms,
     "method",
@@ -41,7 +41,7 @@ fn score_endpoint(
     phrase=30,
     token=12,
   )
-  score += score_field(
+  score += @search.score_field(
     endpoint.path,
     terms,
     "path",
@@ -51,7 +51,7 @@ fn score_endpoint(
     token=18,
   )
   if endpoint.summary is Some(summary) {
-    score += score_field(
+    score += @search.score_field(
       summary,
       terms,
       "summary",
@@ -62,7 +62,7 @@ fn score_endpoint(
     )
   }
   for tag in endpoint.tags {
-    score += score_field(
+    score += @search.score_field(
       tag,
       terms,
       "tags",
@@ -72,9 +72,9 @@ fn score_endpoint(
       token=12,
     )
   }
-  score += coverage_bonus(
+  score += @search.coverage_bonus(
     terms,
-    count_matched_groups(endpoint_search_values(endpoint), terms),
+    @search.count_matched_groups(endpoint_search_values(endpoint), terms),
   )
   {
     operation_id: endpoint.operation_id,

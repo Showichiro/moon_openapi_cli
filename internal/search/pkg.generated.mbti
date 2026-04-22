@@ -1,0 +1,25 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "Showichiro/moon_openapi_cli/internal/search"
+
+// Values
+pub fn build_search_terms(String) -> SearchTerms
+
+pub fn count_matched_groups(Array[String], SearchTerms) -> Int
+
+pub fn coverage_bonus(SearchTerms, Int) -> Int
+
+pub fn score_field(String, SearchTerms, String, Array[String], exact~ : Int, phrase~ : Int, token~ : Int) -> Int
+
+// Errors
+
+// Types and methods
+pub struct SearchTerms {
+  phrase : String
+  tokens : Array[String]
+  groups : Array[Array[String]]
+}
+
+// Type aliases
+
+// Traits
+
