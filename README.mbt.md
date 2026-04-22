@@ -81,6 +81,9 @@ it to `apispec`.
 `endpoint get` and `schema get` include reachable components in the emitted
 subset. Internal `$ref` values stay as `$ref` references, and the referenced
 definitions are copied under `components` so the subset remains self-contained.
+Use `endpoint get --inline-refs` to inline reachable internal `$ref` values in
+the emitted operation and components. `--no-resolve` keeps the previous
+unresolved behavior and takes precedence over inlining.
 
 External JSON `$ref` values from local files and `http(s)` URLs are imported
 when they point at reachable components. Relative refs are resolved against the

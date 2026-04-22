@@ -434,8 +434,11 @@ fn all_options() -> EndpointListOptions {
 }
 
 ///|
-fn get_options(no_resolve : Bool) -> EndpointGetOptions {
-  endpoint_get_options(no_resolve)
+fn get_options(
+  no_resolve : Bool,
+  inline_refs? : Bool = false,
+) -> EndpointGetOptions {
+  endpoint_get_options(no_resolve, inline_refs~)
 }
 
 ///|
@@ -601,12 +604,72 @@ test "get endpoint by operationId collects reachable components" {
   assert_eq(subset.warnings, [
     "unsupported external $ref: external.json#/components/schemas/Photo",
   ])
+  guard subset.operation is Object(operation)
+  guard operation.get("requestBody") is Some(Object(request_body))
+  guard request_body.get("content") is Some(Object(request_content))
+  guard request_content.get("application/json") is Some(Object(request_media))
+  guard request_media.get("schema") is Some(Object(request_schema))
+  assert_eq(
+    request_schema.get("$ref"),
+    Some(Json::string("#/components/schemas/NewPet")),
+  )
   guard subset.components is Some(Object(components))
   guard components.get("schemas") is Some(Object(schemas))
   assert_true(schemas.contains("NewPet"))
   assert_true(schemas.contains("Pet"))
   assert_true(schemas.contains("Category"))
   assert_false(schemas.contains("Unused"))
+}
+
+///|
+test "get endpoint inline refs expands operation and components" {
+  let subset = get_endpoint_from_source(
+    endpoint_get_openapi(),
+    "addPet",
+    options=get_options(false, inline_refs=true),
+  ).unwrap()
+  assert_eq(subset.warnings, [
+    "unsupported external $ref: external.json#/components/schemas/Photo",
+  ])
+  guard subset.operation is Object(operation)
+  guard operation.get("requestBody") is Some(Object(request_body))
+  guard request_body.get("content") is Some(Object(request_content))
+  guard request_content.get("application/json") is Some(Object(request_media))
+  guard request_media.get("schema") is Some(Object(request_schema))
+  assert_false(request_schema.contains("$ref"))
+  assert_eq(request_schema.get("title"), Some(Json::string("New pet")))
+  guard request_schema.get("properties") is Some(Object(request_props))
+  guard request_props.get("category") is Some(Object(request_category))
+  assert_false(request_category.contains("$ref"))
+  assert_eq(request_category.get("title"), Some(Json::string("Category")))
+  guard request_props.get("photo") is Some(Object(request_photo))
+  assert_eq(
+    request_photo.get("$ref"),
+    Some(Json::string("external.json#/components/schemas/Photo")),
+  )
+  guard operation.get("responses") is Some(Object(responses))
+  guard responses.get("201") is Some(Object(created_response))
+  guard created_response.get("content") is Some(Object(response_content))
+  guard response_content.get("application/json") is Some(Object(response_media))
+  guard response_media.get("schema") is Some(Object(response_schema))
+  assert_false(response_schema.contains("$ref"))
+  assert_eq(response_schema.get("title"), Some(Json::string("Pet")))
+  guard response_schema.get("allOf") is Some(Array(all_of))
+  guard all_of[0] is Object(inline_new_pet)
+  assert_eq(inline_new_pet.get("title"), Some(Json::string("New pet")))
+  guard all_of[1] is Object(pet_extension)
+  guard pet_extension.get("properties") is Some(Object(pet_props))
+  guard pet_props.get("related") is Some(Object(related_pet))
+  assert_eq(
+    related_pet.get("$ref"),
+    Some(Json::string("#/components/schemas/Pet")),
+  )
+  guard subset.components is Some(Object(components))
+  guard components.get("schemas") is Some(Object(schemas))
+  guard schemas.get("NewPet") is Some(Object(component_new_pet))
+  guard component_new_pet.get("properties") is Some(Object(component_props))
+  guard component_props.get("category") is Some(Object(component_category))
+  assert_eq(component_category.get("title"), Some(Json::string("Category")))
 }
 
 ///|
@@ -619,6 +682,26 @@ test "get endpoint by METHOD PATH target" {
   assert_eq(subset.endpoint.operation_id, "addPet")
   assert_true(subset.components is None)
   assert_eq(subset.warnings, [])
+}
+
+///|
+test "get endpoint no-resolve takes precedence over inline refs" {
+  let subset = get_endpoint_from_source(
+    endpoint_get_openapi(),
+    "POST /pets",
+    options=get_options(true, inline_refs=true),
+  ).unwrap()
+  assert_true(subset.components is None)
+  assert_eq(subset.warnings, [])
+  guard subset.operation is Object(operation)
+  guard operation.get("requestBody") is Some(Object(request_body))
+  guard request_body.get("content") is Some(Object(request_content))
+  guard request_content.get("application/json") is Some(Object(request_media))
+  guard request_media.get("schema") is Some(Object(request_schema))
+  assert_eq(
+    request_schema.get("$ref"),
+    Some(Json::string("#/components/schemas/NewPet")),
+  )
 }
 
 ///|

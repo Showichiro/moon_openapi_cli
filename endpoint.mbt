@@ -20,8 +20,11 @@ pub fn endpoint_list_options(
 }
 
 ///|
-pub fn endpoint_get_options(no_resolve : Bool) -> EndpointGetOptions {
-  @endpoint.endpoint_get_options(no_resolve)
+pub fn endpoint_get_options(
+  no_resolve : Bool,
+  inline_refs? : Bool = false,
+) -> EndpointGetOptions {
+  @endpoint.endpoint_get_options(no_resolve, inline_refs~)
 }
 
 ///|

@@ -12,6 +12,17 @@ test "resolve warning format rejects unsupported value" {
 }
 
 ///|
+test "endpoint get parses inline refs flag" {
+  let argv = ["endpoint", "get", "addPet", "--inline-refs"]
+  let parsed : Result[@argparse.Matches, _] = try? command().parse(argv~)
+  guard parsed is Ok(root_matches)
+  guard root_matches.subcommand is Some(("endpoint", endpoint_matches))
+  guard endpoint_matches.subcommand is Some(("get", get_matches))
+  assert_true(get_matches.flags.get_or_default("inline-refs", false))
+  assert_false(get_matches.flags.get_or_default("no-resolve", false))
+}
+
+///|
 test "format option parser supports md and rejects unsupported value" {
   let argv = ["endpoint", "get", "addPet", "--format", "md"]
   let endpoint_parsed : Result[@argparse.Matches, _] = try? command().parse(

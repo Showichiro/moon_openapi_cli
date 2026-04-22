@@ -9,7 +9,7 @@ import {
 // Values
 pub fn collect_operation_candidates(Map[String, Json]) -> Array[OperationCandidate]
 
-pub fn endpoint_get_options(Bool) -> EndpointGetOptions
+pub fn endpoint_get_options(Bool, inline_refs? : Bool) -> EndpointGetOptions
 
 pub fn endpoint_list_options(String?, String?) -> EndpointListOptions
 
@@ -45,6 +45,7 @@ pub(all) enum EndpointGetFormat {
 
 pub(all) struct EndpointGetOptions {
   no_resolve : Bool
+  inline_refs : Bool
 } derive(Eq, @debug.Debug)
 
 pub(all) enum EndpointListFormat {

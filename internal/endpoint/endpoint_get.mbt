@@ -1,6 +1,9 @@
 ///|
-pub fn endpoint_get_options(no_resolve : Bool) -> EndpointGetOptions {
-  { no_resolve, }
+pub fn endpoint_get_options(
+  no_resolve : Bool,
+  inline_refs? : Bool = false,
+) -> EndpointGetOptions {
+  { no_resolve, inline_refs }
 }
 
 ///|
@@ -41,21 +44,16 @@ fn get_endpoint_normalized(
           match resolve_operation(candidates, target) {
             Err(err) => Err(err)
             Ok(candidate) => {
-              let ref_result = if options.no_resolve {
-                Ok((None, []))
-              } else {
-                @refs.collect_reachable_components(
-                  document,
-                  candidate.operation,
-                )
-              }
+              let ref_result = collect_endpoint_refs(
+                document, candidate, options,
+              )
               match ref_result {
                 Err(err) => Err(err)
-                Ok((components, warnings)) =>
+                Ok((operation, components, warnings)) =>
                   Ok({
                     openapi_version: @openapi_metadata.openapi_version(root),
                     endpoint: candidate.endpoint,
-                    operation: candidate.operation,
+                    operation,
                     components,
                     warnings,
                   })
@@ -67,6 +65,35 @@ fn get_endpoint_normalized(
         None => Err(ParseError("missing required 'paths' object"))
       }
     _ => Err(ParseError("expected JSON object input"))
+  }
+}
+
+///|
+fn collect_endpoint_refs(
+  document : Json,
+  candidate : OperationCandidate,
+  options : EndpointGetOptions,
+) -> Result[(Json, Json?, Array[String]), ApispecError] {
+  if options.no_resolve {
+    Ok((candidate.operation, None, []))
+  } else {
+    match @refs.collect_reachable_components(document, candidate.operation) {
+      Err(err) => Err(err)
+      Ok((components, warnings)) =>
+        if options.inline_refs {
+          Ok(
+            (
+              @refs.inline_internal_refs(document, candidate.operation),
+              components.map(component => {
+                @refs.inline_internal_refs(document, component)
+              }),
+              warnings,
+            ),
+          )
+        } else {
+          Ok((candidate.operation, components, warnings))
+        }
+    }
   }
 }
 
