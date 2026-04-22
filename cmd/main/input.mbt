@@ -72,50 +72,29 @@ async fn fetch_url_without_timeout(url : String) -> Result[String, String] {
 }
 
 ///|
-fn read_file(path : String) -> Result[String, String] {
-  decode_io_result(read_file_ffi(@utf8.encode(path)))
-}
-
-///|
-fn read_stdin() -> Result[String, String] {
-  decode_io_result(read_stdin_ffi())
-}
-
-///|
-fn decode_io_result(bytes : Bytes) -> Result[String, String] {
-  if bytes.length() == 0 {
-    Err("I/O operation returned an empty status payload")
-  } else {
-    let payload = @utf8.decode_lossy(bytes[1:])
-    if bytes[0].to_int() == 0 {
-      Ok(payload)
-    } else {
-      Err(payload)
-    }
+async fn read_file(path : String) -> Result[String, String] {
+  let result : Result[&@io.Data, _] = try? @fs.read_file(path)
+  match result {
+    Ok(data) => Ok(@utf8.decode_lossy(data.binary()))
+    Err(err) => Err("failed to read '\{path}': \{err}")
   }
 }
 
 ///|
-fn write_stdout(output : String) -> Unit {
-  write_stdout_ffi(@utf8.encode(output))
+async fn read_stdin() -> Result[String, String] {
+  let result : Result[&@io.Data, _] = try? @stdio.stdin.read_all()
+  match result {
+    Ok(data) => Ok(@utf8.decode_lossy(data.binary()))
+    Err(err) => Err("failed to read stdin: \{err}")
+  }
 }
 
 ///|
-fn write_stderr(output : String) -> Unit {
-  write_stderr_ffi(@utf8.encode(output))
+async fn write_stdout(output : String) -> Unit {
+  @stdio.stdout.write(output)
 }
 
 ///|
-#borrow(path)
-extern "c" fn read_file_ffi(path : Bytes) -> Bytes = "moonbit_apispec_read_file"
-
-///|
-extern "c" fn read_stdin_ffi() -> Bytes = "moonbit_apispec_read_stdin"
-
-///|
-#borrow(output)
-extern "c" fn write_stdout_ffi(output : Bytes) -> Unit = "moonbit_apispec_write_stdout"
-
-///|
-#borrow(output)
-extern "c" fn write_stderr_ffi(output : Bytes) -> Unit = "moonbit_apispec_write_stderr"
+async fn write_stderr(output : String) -> Unit {
+  @stdio.stderr.write(output)
+}

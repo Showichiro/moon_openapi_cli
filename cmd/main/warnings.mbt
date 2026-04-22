@@ -24,7 +24,7 @@ const EXTERNAL_REF_POINTER_NOT_FOUND_PREFIX : String = "external $ref pointer no
 const EXTERNAL_REF_CONFLICT_PREFIX : String = "external $ref conflict: "
 
 ///|
-fn write_warnings(
+async fn write_warnings(
   warnings : Array[String],
   format : WarningOutputFormat,
 ) -> Unit {

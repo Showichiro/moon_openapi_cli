@@ -18,7 +18,7 @@ fn trace_now_ms() -> UInt64 {
 }
 
 ///|
-fn write_trace_phase(
+async fn write_trace_phase(
   trace : VerboseTrace,
   phase : String,
   started_at : UInt64,
@@ -32,7 +32,7 @@ fn write_trace_phase(
 }
 
 ///|
-fn write_trace_total(trace : VerboseTrace) -> Unit {
+async fn write_trace_total(trace : VerboseTrace) -> Unit {
   write_trace_phase(trace, "total", trace.total_start, trace_now_ms())
 }
 

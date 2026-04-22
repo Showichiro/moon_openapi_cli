@@ -1,11 +1,11 @@
 ///|
-fn exit_with_error(err : @lib.ApispecError) -> Unit {
+async fn exit_with_error(err : @lib.ApispecError) -> Unit {
   write_stderr(err.to_stderr_json() + "\n")
   exit_ffi(err.exit_code())
 }
 
 ///|
-fn exit_with_error_context(
+async fn exit_with_error_context(
   err : @lib.ApispecError,
   input : String?,
   suggestion : String?,
@@ -15,7 +15,7 @@ fn exit_with_error_context(
 }
 
 ///|
-fn exit_with_format_error(
+async fn exit_with_format_error(
   err : @lib.ApispecError,
   matches : @argparse.Matches,
 ) -> Unit {
@@ -27,7 +27,7 @@ fn exit_with_format_error(
 }
 
 ///|
-fn exit_with_warning_format_error(
+async fn exit_with_warning_format_error(
   err : @lib.ApispecError,
   matches : @argparse.Matches,
 ) -> Unit {
@@ -39,7 +39,7 @@ fn exit_with_warning_format_error(
 }
 
 ///|
-fn exit_with_limit_error(
+async fn exit_with_limit_error(
   err : @lib.ApispecError,
   matches : @argparse.Matches,
 ) -> Unit {
@@ -51,7 +51,7 @@ fn exit_with_limit_error(
 }
 
 ///|
-fn exit_with_operation_error(
+async fn exit_with_operation_error(
   err : @lib.ApispecError,
   target : String,
   content : String,
@@ -75,7 +75,7 @@ fn exit_with_operation_error(
 }
 
 ///|
-fn exit_with_schema_error(
+async fn exit_with_schema_error(
   err : @lib.ApispecError,
   name : String,
   content : String,
@@ -98,13 +98,13 @@ fn describe_command_suggestion() -> String {
 }
 
 ///|
-fn exit_success(output : String) -> Unit {
+async fn exit_success(output : String) -> Unit {
   write_stdout(output)
   exit_ffi(0)
 }
 
 ///|
-fn exit_success_output(output : String) -> Unit {
+async fn exit_success_output(output : String) -> Unit {
   if output.is_empty() {
     exit_success("")
   } else {

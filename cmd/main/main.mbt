@@ -36,7 +36,7 @@ async fn dispatch(matches : @argparse.Matches) -> Unit {
 }
 
 ///|
-fn describe(matches : @argparse.Matches) -> Unit {
+async fn describe(matches : @argparse.Matches) -> Unit {
   match option_value(matches, "subcommand") {
     Some(name) =>
       match @lib.describe_command(name) {
