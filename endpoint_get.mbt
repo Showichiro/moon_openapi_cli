@@ -10,7 +10,7 @@ pub fn get_endpoint_from_source(
   target : String,
   options~ : EndpointGetOptions,
 ) -> Result[EndpointSubset, ApispecError] {
-  match parse_json_object_source(source) {
+  match @source.parse_json_object_source(source) {
     Ok(json) => get_endpoint(json, target, options~)
     Err(err) => Err(err)
   }

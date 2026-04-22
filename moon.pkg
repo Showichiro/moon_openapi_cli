@@ -5,5 +5,5 @@ import {
   "Showichiro/moon_openapi_cli/internal/normalize" @normalize,
   "Showichiro/moon_openapi_cli/internal/refs" @refs,
   "Showichiro/moon_openapi_cli/internal/search" @search,
-  "moonbitlang/core/json" @json,
+  "Showichiro/moon_openapi_cli/internal/source" @source,
 }

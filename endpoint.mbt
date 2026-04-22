@@ -16,7 +16,7 @@ pub fn list_endpoints_from_source(
   source : String,
   options~ : EndpointListOptions,
 ) -> Result[Array[EndpointSummary], ApispecError] {
-  match parse_json_object_source(source) {
+  match @source.parse_json_object_source(source) {
     Ok(json) => list_endpoints(json, options~)
     Err(err) => Err(err)
   }

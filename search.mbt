@@ -18,7 +18,7 @@ pub fn search_endpoints_from_source(
   query : String,
   options~ : EndpointSearchOptions,
 ) -> Result[Array[EndpointSearchResult], ApispecError] {
-  match parse_json_object_source(source) {
+  match @source.parse_json_object_source(source) {
     Ok(json) => search_endpoints(json, query, options~)
     Err(err) => Err(err)
   }
@@ -51,7 +51,7 @@ pub fn search_schemas_from_source(
   query : String,
   options~ : SchemaSearchOptions,
 ) -> Result[Array[SchemaSearchResult], ApispecError] {
-  match parse_json_object_source(source) {
+  match @source.parse_json_object_source(source) {
     Ok(json) => search_schemas(json, query, options~)
     Err(err) => Err(err)
   }

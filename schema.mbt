@@ -7,7 +7,7 @@ pub fn schema_get_options(with_usages : Bool) -> SchemaGetOptions {
 pub fn list_schemas_from_source(
   source : String,
 ) -> Result[Array[SchemaSummary], ApispecError] {
-  match parse_json_object_source(source) {
+  match @source.parse_json_object_source(source) {
     Ok(json) => list_schemas(json)
     Err(err) => Err(err)
   }
@@ -29,7 +29,7 @@ pub fn get_schema_from_source(
   name : String,
   options~ : SchemaGetOptions,
 ) -> Result[SchemaSubset, ApispecError] {
-  match parse_json_object_source(source) {
+  match @source.parse_json_object_source(source) {
     Ok(json) => get_schema(json, name, options~)
     Err(err) => Err(err)
   }
