@@ -7,77 +7,63 @@ async fn import_external_ref(
   root_kind : RootSpecKind,
   ctx : ExternalRefContext,
 ) -> String? {
-  match split_ref(ref_value) {
+  let (document_ref, fragment) = match split_ref(ref_value) {
+    Some(parts) => parts
     None => {
-      warn_external_once(
-        ctx,
-        ref_value,
-        "unsupported external $ref: \{ref_value}",
-      )
-      None
+      warn_unsupported_external_ref(ctx, ref_value)
+      return None
     }
-    Some((document_ref, fragment)) =>
-      match resolve_ref_document_location(current_location, document_ref) {
-        None => {
-          warn_external_once(
-            ctx,
-            ref_value,
-            "unsupported external $ref: \{ref_value}",
+  }
+  let target_location = match
+    resolve_ref_document_location(current_location, document_ref) {
+    Some(location) => location
+    None => {
+      warn_unsupported_external_ref(ctx, ref_value)
+      return None
+    }
+  }
+  let document = if document_ref.is_empty() {
+    current_document
+  } else {
+    match load_external_document(target_location, ref_value, ctx) {
+      Some(document) => document
+      None => return None
+    }
+  }
+  let tokens = match decode_ref_fragment(fragment) {
+    Some(tokens) => tokens
+    None => {
+      warn_unsupported_external_ref(ctx, ref_value)
+      return None
+    }
+  }
+  let target = match external_ref_target(tokens, root_kind) {
+    Some(target) => target
+    None => {
+      warn_unsupported_external_ref(ctx, ref_value)
+      return None
+    }
+  }
+  let key = import_key(target_location, target.import_tokens)
+  match ctx.imported.get(key) {
+    Some(internal_ref) => Some(internal_ref)
+    None =>
+      match ctx.in_progress.get(key) {
+        Some(internal_ref) => Some(internal_ref)
+        None =>
+          import_external_target(
+            ref_value, key, document, target_location, target, root, root_kind, ctx,
           )
-          None
-        }
-        Some(target_location) => {
-          let target_document = if document_ref.is_empty() {
-            Some(current_document)
-          } else {
-            load_external_document(target_location, ref_value, ctx)
-          }
-          match target_document {
-            None => None
-            Some(document) =>
-              match decode_ref_fragment(fragment) {
-                None => {
-                  warn_external_once(
-                    ctx,
-                    ref_value,
-                    "unsupported external $ref: \{ref_value}",
-                  )
-                  None
-                }
-                Some(tokens) =>
-                  match external_ref_target(tokens, root_kind) {
-                    None => {
-                      warn_external_once(
-                        ctx,
-                        ref_value,
-                        "unsupported external $ref: \{ref_value}",
-                      )
-                      None
-                    }
-                    Some(target) => {
-                      let key = import_key(
-                        target_location,
-                        target.import_tokens,
-                      )
-                      match ctx.imported.get(key) {
-                        Some(internal_ref) => Some(internal_ref)
-                        None =>
-                          match ctx.in_progress.get(key) {
-                            Some(internal_ref) => Some(internal_ref)
-                            None =>
-                              import_external_target(
-                                ref_value, key, document, target_location, target,
-                                root, root_kind, ctx,
-                              )
-                          }
-                      }
-                    }
-                  }
-              }
-          }
-        }
       }
   }
+}
+
+///|
+fn warn_unsupported_external_ref(
+  ctx : ExternalRefContext,
+  ref_value : String,
+) -> Unit {
+  warn_external_once(ctx, ref_value, "unsupported external $ref: \{ref_value}")
 }
 
 ///|
@@ -103,17 +89,9 @@ async fn import_external_target(
     Some(component) =>
       match root_component(root, target) {
         Some(existing) =>
-          if existing.stringify() == component.stringify() {
-            ctx.imported[key] = target.internal_ref
-            Some(target.internal_ref)
-          } else {
-            warn_external_once(
-              ctx,
-              ref_value,
-              "external $ref conflict: \{ref_value} -- target already exists",
-            )
-            None
-          }
+          reuse_existing_external_component(
+            ref_value, key, component, existing, target, ctx,
+          )
         None => {
           ctx.in_progress[key] = target.internal_ref
           let rewritten = rewrite_imported_component(
@@ -133,6 +111,28 @@ async fn import_external_target(
           }
         }
       }
+  }
+}
+
+///|
+fn reuse_existing_external_component(
+  ref_value : String,
+  key : String,
+  component : Json,
+  existing : Json,
+  target : ExternalRefTarget,
+  ctx : ExternalRefContext,
+) -> String? {
+  if existing.stringify() == component.stringify() {
+    ctx.imported[key] = target.internal_ref
+    Some(target.internal_ref)
+  } else {
+    warn_external_once(
+      ctx,
+      ref_value,
+      "external $ref conflict: \{ref_value} -- target already exists",
+    )
+    None
   }
 }
 
