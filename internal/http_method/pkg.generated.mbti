@@ -1,0 +1,16 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "Showichiro/moon_openapi_cli/internal/http_method"
+
+// Values
+pub fn is_http_method(String) -> Bool
+
+pub fn rank(String) -> Int
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
+

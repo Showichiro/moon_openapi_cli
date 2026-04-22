@@ -1,28 +1,4 @@
 ///|
-const GET : String = "GET"
-
-///|
-const POST : String = "POST"
-
-///|
-const PUT : String = "PUT"
-
-///|
-const DELETE : String = "DELETE"
-
-///|
-const PATCH : String = "PATCH"
-
-///|
-const OPTIONS : String = "OPTIONS"
-
-///|
-const HEAD : String = "HEAD"
-
-///|
-const TRACE : String = "TRACE"
-
-///|
 pub fn endpoint_list_options(
   tag : String?,
   http_method : String?,
@@ -87,7 +63,7 @@ fn extract_paths(
     if path_item is Object(path_item_obj) {
       for method_name, operation_json in path_item_obj {
         let http_method = method_name.to_upper()
-        if is_http_method(http_method) {
+        if @http_method.is_http_method(http_method) {
           if operation_json is Object(operation) {
             if build_endpoint(path, http_method, operation) is Some(endpoint) {
               if endpoint_matches(endpoint, options) {
@@ -160,40 +136,13 @@ fn endpoint_matches(
 }
 
 ///|
-fn is_http_method(http_method : String) -> Bool {
-  http_method == GET ||
-  http_method == POST ||
-  http_method == PUT ||
-  http_method == DELETE ||
-  http_method == PATCH ||
-  http_method == OPTIONS ||
-  http_method == HEAD ||
-  http_method == TRACE
-}
-
-///|
-fn method_rank(http_method : String) -> Int {
-  match http_method {
-    "GET" => 0
-    "POST" => 1
-    "PUT" => 2
-    "PATCH" => 3
-    "DELETE" => 4
-    "OPTIONS" => 5
-    "HEAD" => 6
-    "TRACE" => 7
-    _ => 99
-  }
-}
-
-///|
 fn compare_endpoints(left : EndpointSummary, right : EndpointSummary) -> Int {
   let path_cmp = left.path.lexical_compare(right.path)
   if path_cmp != 0 {
     path_cmp
   } else {
-    let method_cmp = method_rank(left.http_method) -
-      method_rank(right.http_method)
+    let method_cmp = @http_method.rank(left.http_method) -
+      @http_method.rank(right.http_method)
     if method_cmp != 0 {
       method_cmp
     } else {

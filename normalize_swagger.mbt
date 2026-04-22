@@ -50,7 +50,7 @@ fn normalize_swagger_paths(
         }
         for method_name, operation_json in path_item_object {
           let http_method = method_name.to_upper()
-          if is_http_method(http_method) {
+          if @http_method.is_http_method(http_method) {
             match operation_json {
               Object(operation) =>
                 match

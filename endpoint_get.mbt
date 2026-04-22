@@ -85,7 +85,7 @@ fn collect_operation_candidates(
     if path_item is Object(path_item_obj) {
       for method_name, operation_json in path_item_obj {
         let http_method = method_name.to_upper()
-        if is_http_method(http_method) {
+        if @http_method.is_http_method(http_method) {
           if operation_json is Object(operation) {
             if build_endpoint(path, http_method, operation) is Some(endpoint) {
               candidates.push({ endpoint, operation: operation_json })
@@ -159,7 +159,7 @@ fn parse_method_path_target(target : String) -> (String, String)? {
     Some((method_view, path_view)) => {
       let http_method = method_view.to_string().to_upper()
       let path = path_view.trim().to_string()
-      if is_http_method(http_method) && !path.is_empty() {
+      if @http_method.is_http_method(http_method) && !path.is_empty() {
         Some((http_method, path))
       } else {
         None

@@ -120,8 +120,8 @@ fn sort_endpoint_search_results(results : Array[EndpointSearchResult]) -> Unit {
       if path_cmp != 0 {
         path_cmp
       } else {
-        let method_cmp = method_rank(left.http_method) -
-          method_rank(right.http_method)
+        let method_cmp = @http_method.rank(left.http_method) -
+          @http_method.rank(right.http_method)
         if method_cmp != 0 {
           method_cmp
         } else {
