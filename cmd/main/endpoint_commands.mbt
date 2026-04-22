@@ -23,20 +23,11 @@ async fn endpoint_ls(matches : @argparse.Matches) -> Unit {
         Ok(endpoints) => {
           write_trace_phase(trace, "extract", extract_start, trace_now_ms())
           let format_start = trace_now_ms()
-          let format = resolve_list_format(matches)
-          match format {
-            Err(err) => {
-              write_trace_phase(trace, "format", format_start, trace_now_ms())
-              write_trace_total(trace)
-              exit_with_format_error(err, matches)
-            }
-            Ok(format) => {
-              let output = @lib.format_endpoint_list(endpoints, format)
-              write_trace_phase(trace, "format", format_start, trace_now_ms())
-              write_trace_total(trace)
-              exit_success_output(output)
-            }
+          let output = match resolve_list_format(matches) {
+            Err(err) => Err(err)
+            Ok(format) => Ok(@lib.format_endpoint_list(endpoints, format))
           }
+          exit_with_formatted_output(trace, matches, format_start, output)
         }
       }
     }
@@ -82,33 +73,14 @@ async fn endpoint_get(matches : @argparse.Matches) -> Unit {
                 Ok(warning_format) => {
                   write_warnings(resolved.warnings, warning_format)
                   let format_start = trace_now_ms()
-                  let format = resolve_get_format(matches)
-                  match format {
-                    Err(err) => {
-                      write_trace_phase(
-                        trace,
-                        "format",
-                        format_start,
-                        trace_now_ms(),
-                      )
-                      write_trace_total(trace)
-                      exit_with_format_error(err, matches)
-                    }
-                    Ok(format) => {
-                      let output = @lib.format_endpoint_subset(
-                        resolved.subset,
-                        format,
-                      )
-                      write_trace_phase(
-                        trace,
-                        "format",
-                        format_start,
-                        trace_now_ms(),
-                      )
-                      write_trace_total(trace)
-                      exit_success_output(output)
-                    }
+                  let output = match resolve_get_format(matches) {
+                    Err(err) => Err(err)
+                    Ok(format) =>
+                      Ok(@lib.format_endpoint_subset(resolved.subset, format))
                   }
+                  exit_with_formatted_output(
+                    trace, matches, format_start, output,
+                  )
                 }
               }
             }
@@ -170,32 +142,14 @@ async fn endpoint_search(matches : @argparse.Matches) -> Unit {
                     trace_now_ms(),
                   )
                   let format_start = trace_now_ms()
-                  let format = resolve_endpoint_search_format(matches)
-                  match format {
-                    Err(err) => {
-                      write_trace_phase(
-                        trace,
-                        "format",
-                        format_start,
-                        trace_now_ms(),
-                      )
-                      write_trace_total(trace)
-                      exit_with_format_error(err, matches)
-                    }
-                    Ok(format) => {
-                      let output = @lib.format_endpoint_search_results(
-                        results, format,
-                      )
-                      write_trace_phase(
-                        trace,
-                        "format",
-                        format_start,
-                        trace_now_ms(),
-                      )
-                      write_trace_total(trace)
-                      exit_success_output(output)
-                    }
+                  let output = match resolve_endpoint_search_format(matches) {
+                    Err(err) => Err(err)
+                    Ok(format) =>
+                      Ok(@lib.format_endpoint_search_results(results, format))
                   }
+                  exit_with_formatted_output(
+                    trace, matches, format_start, output,
+                  )
                 }
               }
             }
