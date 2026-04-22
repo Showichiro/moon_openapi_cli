@@ -15,7 +15,7 @@ pub fn describe_command_names() -> Array[String]
 
 pub fn describe_commands() -> Array[@describe.CommandDescriptor]
 
-pub fn endpoint_get_options(Bool) -> @endpoint.EndpointGetOptions
+pub fn endpoint_get_options(Bool, inline_refs? : Bool) -> @endpoint.EndpointGetOptions
 
 pub fn endpoint_list_options(String?, String?) -> @endpoint.EndpointListOptions
 

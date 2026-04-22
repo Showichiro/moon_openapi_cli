@@ -41,6 +41,10 @@ fn endpoint_get_command() -> @argparse.Command {
         "no-resolve",
         about="Skip reachable component inclusion and external ref import.",
       ),
+      @argparse.FlagArg(
+        "inline-refs",
+        about="Inline reachable internal $ref values in the emitted subset.",
+      ),
       verbose_flag(),
     ],
   )

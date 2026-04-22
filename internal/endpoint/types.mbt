@@ -26,6 +26,7 @@ pub(all) enum EndpointListFormat {
 ///|
 pub(all) struct EndpointGetOptions {
   no_resolve : Bool
+  inline_refs : Bool
 } derive(Eq, Debug)
 
 ///|

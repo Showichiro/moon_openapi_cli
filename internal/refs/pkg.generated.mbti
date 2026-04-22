@@ -10,6 +10,8 @@ pub fn collect_reachable_components(Json, Json) -> Result[(Json?, Array[String])
 
 pub fn collect_schema_components(Json, String, Json) -> Result[(Json?, Array[String]), @error.ApispecError]
 
+pub fn inline_internal_refs(Json, Json) -> Json
+
 // Errors
 
 // Types and methods

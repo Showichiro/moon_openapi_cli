@@ -39,6 +39,7 @@ async fn endpoint_get(matches : @argparse.Matches) -> Unit {
         Ok((file, content)) => {
           let options = @lib.endpoint_get_options(
             matches.flags.get_or_default("no-resolve", false),
+            inline_refs=matches.flags.get_or_default("inline-refs", false),
           )
           let extract_start = trace_now_ms()
           match
