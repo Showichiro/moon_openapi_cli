@@ -194,39 +194,61 @@ async fn load_external_document(
   let key = location_key(location)
   match ctx.cache.get(key) {
     Some(document) => Some(document)
-    None => {
-      let content_result = match location {
-        LocalRefDocument(path) => read_file(path)
-        RemoteRefDocument(url) => fetch_url(url)
-        NoRefDocument => Err("missing external $ref base")
-      }
-      match content_result {
-        Err(message) => {
-          warn_external_once(
-            ctx,
-            ref_value,
-            "external $ref load failed: \{ref_value} -- \{message}",
-          )
-          None
-        }
-        Ok(content) => {
-          let parsed : Result[Json, _] = try? @json.parse(content)
-          match parsed {
-            Err(err) => {
-              warn_external_once(
-                ctx,
-                ref_value,
-                "external $ref parse failed: \{ref_value} -- \{err}",
-              )
-              None
-            }
-            Ok(document) => {
+    None =>
+      match read_external_document_content(location, ref_value, ctx) {
+        None => None
+        Some(content) =>
+          match parse_external_document(content, ref_value, ctx) {
+            None => None
+            Some(document) => {
               ctx.cache[key] = document
               Some(document)
             }
           }
-        }
       }
+  }
+}
+
+///|
+async fn read_external_document_content(
+  location : RefDocumentLocation,
+  ref_value : String,
+  ctx : ExternalRefContext,
+) -> String? {
+  let content_result = match location {
+    LocalRefDocument(path) => read_file(path)
+    RemoteRefDocument(url) => fetch_url(url)
+    NoRefDocument => Err("missing external $ref base")
+  }
+  match content_result {
+    Err(message) => {
+      warn_external_once(
+        ctx,
+        ref_value,
+        "external $ref load failed: \{ref_value} -- \{message}",
+      )
+      None
     }
+    Ok(content) => Some(content)
+  }
+}
+
+///|
+fn parse_external_document(
+  content : String,
+  ref_value : String,
+  ctx : ExternalRefContext,
+) -> Json? {
+  let parsed : Result[Json, _] = try? @json.parse(content)
+  match parsed {
+    Err(err) => {
+      warn_external_once(
+        ctx,
+        ref_value,
+        "external $ref parse failed: \{ref_value} -- \{err}",
+      )
+      None
+    }
+    Ok(document) => Some(document)
   }
 }
