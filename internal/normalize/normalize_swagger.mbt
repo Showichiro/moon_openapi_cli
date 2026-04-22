@@ -10,8 +10,10 @@ fn normalize_swagger2(root : Map[String, Json]) -> Result[Json, ApispecError] {
         Err(err) => return Err(err)
         Ok(paths) => normalized["paths"] = paths
       }
-    Some(_) => return Err(ParseError("expected 'paths' to be an object"))
-    None => return Err(ParseError("missing required 'paths' object"))
+    Some(_) =>
+      return Err(ApispecError::ParseError("expected 'paths' to be an object"))
+    None =>
+      return Err(ApispecError::ParseError("missing required 'paths' object"))
   }
   let components = normalize_swagger_components(root)
   if !components.is_empty() {
@@ -93,7 +95,11 @@ fn normalize_swagger_operation(
         combined_parameters.push(parameter)
       }
     Some(_) =>
-      return Err(ParseError("expected operation 'parameters' to be an array"))
+      return Err(
+        ApispecError::ParseError(
+          "expected operation 'parameters' to be an array",
+        ),
+      )
     None => ()
   }
   match normalize_swagger_parameters(root, operation, combined_parameters) {
@@ -113,7 +119,11 @@ fn normalize_swagger_operation(
         root, operation, responses,
       )
     Some(_) =>
-      return Err(ParseError("expected operation 'responses' to be an object"))
+      return Err(
+        ApispecError::ParseError(
+          "expected operation 'responses' to be an object",
+        ),
+      )
     None => ()
   }
   Ok(Json::object(normalized))

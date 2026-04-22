@@ -66,7 +66,7 @@ pub fn search_schemas(
   match validate_search_input(query, options.limit) {
     Err(err) => Err(err)
     Ok(query) =>
-      match normalize_document(document) {
+      match @normalize.normalize_document(document) {
         Err(err) => Err(err)
         Ok(document) =>
           search_schemas_normalized(document, query, options.limit)

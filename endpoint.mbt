@@ -27,7 +27,7 @@ pub fn list_endpoints(
   document : Json,
   options~ : EndpointListOptions,
 ) -> Result[Array[EndpointSummary], ApispecError] {
-  match normalize_document(document) {
+  match @normalize.normalize_document(document) {
     Err(err) => Err(err)
     Ok(document) =>
       match list_endpoints_normalized(document, options~) {

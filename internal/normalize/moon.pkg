@@ -1,0 +1,4 @@
+import {
+  "Showichiro/moon_openapi_cli/internal/error" @errors,
+  "Showichiro/moon_openapi_cli/internal/http_method" @http_method,
+}

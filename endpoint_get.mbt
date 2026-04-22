@@ -22,7 +22,7 @@ pub fn get_endpoint(
   target : String,
   options~ : EndpointGetOptions,
 ) -> Result[EndpointSubset, ApispecError] {
-  match normalize_document(document) {
+  match @normalize.normalize_document(document) {
     Err(err) => Err(err)
     Ok(document) => get_endpoint_normalized(document, target, options~)
   }

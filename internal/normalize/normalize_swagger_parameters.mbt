@@ -5,7 +5,12 @@ fn extract_parameter_array(
 ) -> Result[Array[Json], ApispecError] {
   match object.get("parameters") {
     Some(Array(parameters)) => Ok(parameters)
-    Some(_) => Err(ParseError("expected \{label} 'parameters' to be an array"))
+    Some(_) =>
+      Err(
+        ApispecError::ParseError(
+          "expected \{label} 'parameters' to be an array",
+        ),
+      )
     None => Ok([])
   }
 }
@@ -29,7 +34,7 @@ fn normalize_swagger_parameters(
     }
   }
   if body_parameters.length() > 1 {
-    Err(ParseError("multiple body parameters are not supported"))
+    Err(ApispecError::ParseError("multiple body parameters are not supported"))
   } else if body_parameters.length() == 1 {
     match normalize_swagger_request_body(root, operation, body_parameters[0]) {
       Err(err) => Err(err)
@@ -49,7 +54,8 @@ fn normalize_swagger_request_body(
   match body_parameter {
     Object(parameter) =>
       match parameter.get("schema") {
-        None => Err(ParseError("expected body parameter 'schema'"))
+        None =>
+          Err(ApispecError::ParseError("expected body parameter 'schema'"))
         Some(schema) => {
           let media_type = swagger_media_type(root, operation, "consumes")
           let media_object : Map[String, Json] = {
@@ -71,6 +77,7 @@ fn normalize_swagger_request_body(
           Ok(Json::object(request_body))
         }
       }
-    _ => Err(ParseError("expected body parameter to be an object"))
+    _ =>
+      Err(ApispecError::ParseError("expected body parameter to be an object"))
   }
 }

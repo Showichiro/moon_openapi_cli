@@ -17,7 +17,7 @@ pub fn list_schemas_from_source(
 pub fn list_schemas(
   document : Json,
 ) -> Result[Array[SchemaSummary], ApispecError] {
-  match normalize_document(document) {
+  match @normalize.normalize_document(document) {
     Err(err) => Err(err)
     Ok(document) => list_schemas_normalized(document)
   }
@@ -41,7 +41,7 @@ pub fn get_schema(
   name : String,
   options~ : SchemaGetOptions,
 ) -> Result[SchemaSubset, ApispecError] {
-  match normalize_document(document) {
+  match @normalize.normalize_document(document) {
     Err(err) => Err(err)
     Ok(document) => get_schema_normalized(document, name, options~)
   }
