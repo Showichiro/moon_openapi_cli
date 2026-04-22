@@ -1,14 +1,10 @@
 ///|
 async fn endpoint_ls(matches : @argparse.Matches) -> Unit {
   let trace = new_verbose_trace(matches)
-  let file = option_value(matches, "file").unwrap_or("-")
-  let content_result = read_input_with_trace(trace, file)
+  let content_result = read_command_input(trace, matches)
   match content_result {
-    Err(message) => {
-      write_trace_total(trace)
-      exit_with_error(@lib.ParseError(message))
-    }
-    Ok(content) => {
+    Err(message) => exit_with_input_error(trace, message)
+    Ok((_, content)) => {
       let options = @lib.endpoint_list_options(
         option_value(matches, "tag"),
         option_value(matches, "method"),
@@ -44,14 +40,10 @@ async fn endpoint_get(matches : @argparse.Matches) -> Unit {
       exit_with_error(err)
     }
     Ok(target) => {
-      let file = option_value(matches, "file").unwrap_or("-")
-      let content_result = read_input_with_trace(trace, file)
+      let content_result = read_command_input(trace, matches)
       match content_result {
-        Err(message) => {
-          write_trace_total(trace)
-          exit_with_error(@lib.ParseError(message))
-        }
-        Ok(content) => {
+        Err(message) => exit_with_input_error(trace, message)
+        Ok((file, content)) => {
           let options = @lib.endpoint_get_options(
             matches.flags.get_or_default("no-resolve", false),
           )
@@ -108,14 +100,10 @@ async fn endpoint_search(matches : @argparse.Matches) -> Unit {
           exit_with_limit_error(err, matches)
         }
         Ok(limit) => {
-          let file = option_value(matches, "file").unwrap_or("-")
-          let content_result = read_input_with_trace(trace, file)
+          let content_result = read_command_input(trace, matches)
           match content_result {
-            Err(message) => {
-              write_trace_total(trace)
-              exit_with_error(@lib.ParseError(message))
-            }
-            Ok(content) => {
+            Err(message) => exit_with_input_error(trace, message)
+            Ok((_, content)) => {
               let options = @lib.endpoint_search_options(
                 option_value(matches, "tag"),
                 option_value(matches, "method"),
