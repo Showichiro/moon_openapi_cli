@@ -6,22 +6,15 @@ async fn schema_ls(matches : @argparse.Matches) -> Unit {
     Err(message) => exit_with_input_error(trace, message)
     Ok((_, content)) => {
       let extract_start = trace_now_ms()
-      match @lib.list_schemas_from_source(content) {
-        Err(err) => {
-          write_trace_phase(trace, "extract", extract_start, trace_now_ms())
-          write_trace_total(trace)
-          exit_with_error(err)
-        }
-        Ok(schemas) => {
-          write_trace_phase(trace, "extract", extract_start, trace_now_ms())
-          let format_start = trace_now_ms()
-          let output = match resolve_schema_list_format(matches) {
-            Err(err) => Err(err)
-            Ok(format) => Ok(@lib.format_schema_list(schemas, format))
-          }
-          exit_with_formatted_output(trace, matches, format_start, output)
-        }
-      }
+      let extracted = @lib.list_schemas_from_source(content)
+      exit_with_extract_result(
+        trace,
+        matches,
+        extract_start,
+        extracted,
+        resolve_schema_list_format,
+        (schemas, format) => @lib.format_schema_list(schemas, format),
+      )
     }
   }
 }
@@ -102,35 +95,21 @@ async fn schema_search(matches : @argparse.Matches) -> Unit {
             Ok((_, content)) => {
               let options = @lib.schema_search_options(limit)
               let extract_start = trace_now_ms()
-              match @lib.search_schemas_from_source(content, query, options~) {
-                Err(err) => {
-                  write_trace_phase(
-                    trace,
-                    "extract",
-                    extract_start,
-                    trace_now_ms(),
-                  )
-                  write_trace_total(trace)
-                  exit_with_error(err)
-                }
-                Ok(results) => {
-                  write_trace_phase(
-                    trace,
-                    "extract",
-                    extract_start,
-                    trace_now_ms(),
-                  )
-                  let format_start = trace_now_ms()
-                  let output = match resolve_schema_search_format(matches) {
-                    Err(err) => Err(err)
-                    Ok(format) =>
-                      Ok(@lib.format_schema_search_results(results, format))
-                  }
-                  exit_with_formatted_output(
-                    trace, matches, format_start, output,
-                  )
-                }
-              }
+              let extracted = @lib.search_schemas_from_source(
+                content,
+                query,
+                options~,
+              )
+              exit_with_extract_result(
+                trace,
+                matches,
+                extract_start,
+                extracted,
+                resolve_schema_search_format,
+                (results, format) => {
+                  @lib.format_schema_search_results(results, format)
+                },
+              )
             }
           }
         }

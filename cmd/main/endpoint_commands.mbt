@@ -10,22 +10,15 @@ async fn endpoint_ls(matches : @argparse.Matches) -> Unit {
         option_value(matches, "method"),
       )
       let extract_start = trace_now_ms()
-      match @lib.list_endpoints_from_source(content, options~) {
-        Err(err) => {
-          write_trace_phase(trace, "extract", extract_start, trace_now_ms())
-          write_trace_total(trace)
-          exit_with_error(err)
-        }
-        Ok(endpoints) => {
-          write_trace_phase(trace, "extract", extract_start, trace_now_ms())
-          let format_start = trace_now_ms()
-          let output = match resolve_list_format(matches) {
-            Err(err) => Err(err)
-            Ok(format) => Ok(@lib.format_endpoint_list(endpoints, format))
-          }
-          exit_with_formatted_output(trace, matches, format_start, output)
-        }
-      }
+      let extracted = @lib.list_endpoints_from_source(content, options~)
+      exit_with_extract_result(
+        trace,
+        matches,
+        extract_start,
+        extracted,
+        resolve_list_format,
+        (endpoints, format) => @lib.format_endpoint_list(endpoints, format),
+      )
     }
   }
 }
@@ -110,36 +103,21 @@ async fn endpoint_search(matches : @argparse.Matches) -> Unit {
                 limit,
               )
               let extract_start = trace_now_ms()
-              match
-                @lib.search_endpoints_from_source(content, query, options~) {
-                Err(err) => {
-                  write_trace_phase(
-                    trace,
-                    "extract",
-                    extract_start,
-                    trace_now_ms(),
-                  )
-                  write_trace_total(trace)
-                  exit_with_error(err)
-                }
-                Ok(results) => {
-                  write_trace_phase(
-                    trace,
-                    "extract",
-                    extract_start,
-                    trace_now_ms(),
-                  )
-                  let format_start = trace_now_ms()
-                  let output = match resolve_endpoint_search_format(matches) {
-                    Err(err) => Err(err)
-                    Ok(format) =>
-                      Ok(@lib.format_endpoint_search_results(results, format))
-                  }
-                  exit_with_formatted_output(
-                    trace, matches, format_start, output,
-                  )
-                }
-              }
+              let extracted = @lib.search_endpoints_from_source(
+                content,
+                query,
+                options~,
+              )
+              exit_with_extract_result(
+                trace,
+                matches,
+                extract_start,
+                extracted,
+                resolve_endpoint_search_format,
+                (results, format) => {
+                  @lib.format_endpoint_search_results(results, format)
+                },
+              )
             }
           }
         }
