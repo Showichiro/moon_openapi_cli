@@ -55,7 +55,13 @@ fn command() -> @argparse.Command {
               default_values=["text"],
             ),
           ],
-          flags=[@argparse.FlagArg("no-resolve"), @argparse.FlagArg("verbose")],
+          flags=[
+            @argparse.FlagArg(
+              "no-resolve",
+              about="Skip reachable component inclusion and external ref import.",
+            ),
+            @argparse.FlagArg("verbose"),
+          ],
         ),
         @argparse.Command(
           "search",

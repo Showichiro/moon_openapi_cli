@@ -78,17 +78,21 @@ it to `apispec`.
 
 ## External `$ref`
 
-`endpoint get` and `schema get` resolve reachable external JSON `$ref` values
-from local files and `http(s)` URLs. Relative refs are resolved against the
+`endpoint get` and `schema get` include reachable components in the emitted
+subset. Internal `$ref` values stay as `$ref` references, and the referenced
+definitions are copied under `components` so the subset remains self-contained.
+
+External JSON `$ref` values from local files and `http(s)` URLs are imported
+when they point at reachable components. Relative refs are resolved against the
 input document location:
 
 ```json
 {"$ref":"schemas/photo.json#/components/schemas/Photo"}
 ```
 
-When the referenced component is found, `apispec` copies it into the emitted
-subset and rewrites the reference to an internal `$ref`. `endpoint get
---no-resolve` skips both internal and external component resolution.
+When the referenced external component is found, `apispec` copies it into the
+emitted subset and rewrites the reference to an internal `$ref`. `endpoint get
+--no-resolve` skips reachable component inclusion and external ref import.
 
 External refs from stdin require absolute `http(s)` URLs because stdin has no
 base path. Failed loads, parse errors, missing pointers, and component name

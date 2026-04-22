@@ -24,7 +24,7 @@ fn endpoint_ls_descriptor() -> CommandDescriptor {
 fn endpoint_get_descriptor() -> CommandDescriptor {
   {
     name: "endpoint.get",
-    description: "Extract one OpenAPI operation with reachable components.",
+    description: "Extract one OpenAPI operation with reachable component definitions.",
     input_schema: object_schema(
       {
         "target": string_schema("operationId, METHOD PATH, or PATH."),
@@ -35,7 +35,9 @@ fn endpoint_get_descriptor() -> CommandDescriptor {
         "warnings": enum_schema("Warning output format.", [
           "text", "json", "none",
         ]),
-        "noResolve": boolean_schema("Skip reachable component collection."),
+        "noResolve": boolean_schema(
+          "Skip reachable component inclusion and external ref import.",
+        ),
         "verbose": boolean_schema("Emit phase timing JSON Lines on stderr."),
       },
       ["target"],
