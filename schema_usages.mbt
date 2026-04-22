@@ -9,7 +9,7 @@ fn collect_schema_usages(
     Some(Object(paths)) => {
       let usages : Array[EndpointSummary] = []
       let warnings : Array[String] = []
-      let candidates = collect_operation_candidates(paths)
+      let candidates = @endpoint.collect_operation_candidates(paths)
       for candidate in candidates {
         match
           @refs.collect_reachable_components(document, candidate.operation) {

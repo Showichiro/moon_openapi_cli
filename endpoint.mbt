@@ -1,14 +1,36 @@
 ///|
+pub using @endpoint {
+  type EndpointGetFormat,
+  type EndpointGetOptions,
+  type EndpointListFormat,
+  type EndpointListOptions,
+  type EndpointSearchFormat,
+  type EndpointSearchOptions,
+  type EndpointSearchResult,
+  type EndpointSubset,
+  type EndpointSummary,
+}
+
+///|
 pub fn endpoint_list_options(
   tag : String?,
   http_method : String?,
 ) -> EndpointListOptions {
-  { tag, http_method }
+  @endpoint.endpoint_list_options(tag, http_method)
 }
 
 ///|
 pub fn endpoint_get_options(no_resolve : Bool) -> EndpointGetOptions {
-  { no_resolve, }
+  @endpoint.endpoint_get_options(no_resolve)
+}
+
+///|
+pub fn endpoint_search_options(
+  tag : String?,
+  http_method : String?,
+  limit : Int,
+) -> EndpointSearchOptions {
+  @endpoint.endpoint_search_options(tag, http_method, limit)
 }
 
 ///|
@@ -16,10 +38,7 @@ pub fn list_endpoints_from_source(
   source : String,
   options~ : EndpointListOptions,
 ) -> Result[Array[EndpointSummary], ApispecError] {
-  match @source.parse_json_object_source(source) {
-    Ok(json) => list_endpoints(json, options~)
-    Err(err) => Err(err)
-  }
+  @endpoint.list_endpoints_from_source(source, options~)
 }
 
 ///|
@@ -27,131 +46,65 @@ pub fn list_endpoints(
   document : Json,
   options~ : EndpointListOptions,
 ) -> Result[Array[EndpointSummary], ApispecError] {
-  match @normalize.normalize_document(document) {
-    Err(err) => Err(err)
-    Ok(document) =>
-      match list_endpoints_normalized(document, options~) {
-        Err(err) => Err(err)
-        Ok(endpoints) => Ok(endpoints)
-      }
-  }
+  @endpoint.list_endpoints(document, options~)
 }
 
 ///|
-fn list_endpoints_normalized(
+pub fn get_endpoint_from_source(
+  source : String,
+  target : String,
+  options~ : EndpointGetOptions,
+) -> Result[EndpointSubset, ApispecError] {
+  @endpoint.get_endpoint_from_source(source, target, options~)
+}
+
+///|
+pub fn get_endpoint(
   document : Json,
-  options~ : EndpointListOptions,
-) -> Result[Array[EndpointSummary], ApispecError] {
-  match document {
-    Object(root) =>
-      match root.get("paths") {
-        Some(Object(paths)) => Ok(extract_paths(paths, options))
-        Some(_) => Err(ParseError("expected 'paths' to be an object"))
-        None => Err(ParseError("missing required 'paths' object"))
-      }
-    _ => Err(ParseError("expected JSON object input"))
-  }
+  target : String,
+  options~ : EndpointGetOptions,
+) -> Result[EndpointSubset, ApispecError] {
+  @endpoint.get_endpoint(document, target, options~)
 }
 
 ///|
-fn extract_paths(
-  paths : Map[String, Json],
-  options : EndpointListOptions,
-) -> Array[EndpointSummary] {
-  let endpoints : Array[EndpointSummary] = []
-  for path, path_item in paths {
-    if path_item is Object(path_item_obj) {
-      for method_name, operation_json in path_item_obj {
-        let http_method = method_name.to_upper()
-        if @http_method.is_http_method(http_method) {
-          if operation_json is Object(operation) {
-            if build_endpoint(path, http_method, operation) is Some(endpoint) {
-              if endpoint_matches(endpoint, options) {
-                endpoints.push(endpoint)
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-  sort_endpoints(endpoints)
-  endpoints
+pub fn search_endpoints_from_source(
+  source : String,
+  query : String,
+  options~ : EndpointSearchOptions,
+) -> Result[Array[EndpointSearchResult], ApispecError] {
+  @endpoint.search_endpoints_from_source(source, query, options~)
 }
 
 ///|
-fn build_endpoint(
-  path : String,
-  http_method : String,
-  operation : Map[String, Json],
-) -> EndpointSummary? {
-  let tags = extract_tags(operation)
-  let operation_id = match operation.get("operationId") {
-    Some(String(id)) =>
-      if id.is_empty() {
-        "\{http_method} \{path}"
-      } else {
-        id
-      }
-    _ => "\{http_method} \{path}"
-  }
-  let summary = match operation.get("summary") {
-    Some(String(value)) => Some(value)
-    _ => None
-  }
-  Some({ operation_id, http_method, path, tags, summary })
+pub fn search_endpoints(
+  document : Json,
+  query : String,
+  options~ : EndpointSearchOptions,
+) -> Result[Array[EndpointSearchResult], ApispecError] {
+  @endpoint.search_endpoints(document, query, options~)
 }
 
 ///|
-fn extract_tags(operation : Map[String, Json]) -> Array[String] {
-  match operation.get("tags") {
-    Some(Array(values)) => {
-      let tags : Array[String] = []
-      for value in values {
-        if value is String(tag) {
-          tags.push(tag)
-        }
-      }
-      tags
-    }
-    _ => []
-  }
+pub fn format_endpoint_list(
+  endpoints : Array[EndpointSummary],
+  format : EndpointListFormat,
+) -> String {
+  @endpoint.format_endpoint_list(endpoints, format)
 }
 
 ///|
-fn endpoint_matches(
-  endpoint : EndpointSummary,
-  options : EndpointListOptions,
-) -> Bool {
-  let method_matches = match options.http_method {
-    Some(http_method) =>
-      endpoint.http_method.equal_ignore_ascii_case(http_method)
-    None => true
-  }
-  let tag_matches = match options.tag {
-    Some(tag) => endpoint.tags.contains(tag)
-    None => true
-  }
-  method_matches && tag_matches
+pub fn format_endpoint_search_results(
+  results : Array[EndpointSearchResult],
+  format : EndpointSearchFormat,
+) -> String {
+  @endpoint.format_endpoint_search_results(results, format)
 }
 
 ///|
-fn compare_endpoints(left : EndpointSummary, right : EndpointSummary) -> Int {
-  let path_cmp = left.path.lexical_compare(right.path)
-  if path_cmp != 0 {
-    path_cmp
-  } else {
-    let method_cmp = @http_method.rank(left.http_method) -
-      @http_method.rank(right.http_method)
-    if method_cmp != 0 {
-      method_cmp
-    } else {
-      left.operation_id.lexical_compare(right.operation_id)
-    }
-  }
-}
-
-///|
-fn sort_endpoints(endpoints : Array[EndpointSummary]) -> Unit {
-  endpoints.sort_by(compare_endpoints)
+pub fn format_endpoint_subset(
+  subset : EndpointSubset,
+  format : EndpointGetFormat,
+) -> String {
+  @endpoint.format_endpoint_subset(subset, format)
 }

@@ -12,7 +12,7 @@ test "format endpoint list as json lines" {
   inspect(
     @moon_openapi_cli.format_endpoint_list(
       endpoints,
-      @moon_openapi_cli.JsonLines,
+      @moon_openapi_cli.EndpointListFormat::JsonLines,
     ),
     content=(
       #|{"operationId":"listPets","method":"GET","path":"/pets","tags":["pets"],"summary":"List pets"}
@@ -34,7 +34,7 @@ test "format endpoint list as markdown" {
   inspect(
     @moon_openapi_cli.format_endpoint_list(
       endpoints,
-      @moon_openapi_cli.Markdown,
+      @moon_openapi_cli.EndpointListFormat::Markdown,
     ),
     content="- POST /pets addPet",
   )
@@ -59,7 +59,10 @@ test "format endpoint list as quiet ids" {
     },
   ]
   inspect(
-    @moon_openapi_cli.format_endpoint_list(endpoints, @moon_openapi_cli.Quiet),
+    @moon_openapi_cli.format_endpoint_list(
+      endpoints,
+      @moon_openapi_cli.EndpointListFormat::Quiet,
+    ),
     content=(
       #|listPets
       #|addPet
@@ -83,7 +86,7 @@ test "format endpoint search results" {
   ]
   let json = @moon_openapi_cli.format_endpoint_search_results(
     results,
-    @moon_openapi_cli.EndpointSearchJsonLines,
+    @moon_openapi_cli.EndpointSearchFormat::EndpointSearchJsonLines,
   )
   assert_true(json.contains("\"operationId\":\"addPet\""))
   assert_true(json.contains("\"target\":\"POST /pets\""))
@@ -92,7 +95,7 @@ test "format endpoint search results" {
   inspect(
     @moon_openapi_cli.format_endpoint_search_results(
       results,
-      @moon_openapi_cli.EndpointSearchQuiet,
+      @moon_openapi_cli.EndpointSearchFormat::EndpointSearchQuiet,
     ),
     content="POST /pets",
   )
@@ -125,7 +128,7 @@ test "format endpoint subset as json" {
   inspect(
     @moon_openapi_cli.format_endpoint_subset(
       subset,
-      @moon_openapi_cli.EndpointGetJson,
+      @moon_openapi_cli.EndpointGetFormat::EndpointGetJson,
     ),
     content=(
       #|{
@@ -165,7 +168,7 @@ test "format endpoint subset as markdown" {
   }
   let markdown = @moon_openapi_cli.format_endpoint_subset(
     subset,
-    @moon_openapi_cli.EndpointGetMarkdown,
+    @moon_openapi_cli.EndpointGetFormat::EndpointGetMarkdown,
   )
   assert_true(markdown.contains("## POST /pets"))
   assert_true(markdown.contains("operationId: addPet"))

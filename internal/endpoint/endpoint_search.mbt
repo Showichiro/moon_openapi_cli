@@ -1,4 +1,46 @@
 ///|
+pub fn endpoint_search_options(
+  tag : String?,
+  http_method : String?,
+  limit : Int,
+) -> EndpointSearchOptions {
+  { tag, http_method, limit }
+}
+
+///|
+pub fn search_endpoints_from_source(
+  source : String,
+  query : String,
+  options~ : EndpointSearchOptions,
+) -> Result[Array[EndpointSearchResult], ApispecError] {
+  match @source.parse_json_object_source(source) {
+    Ok(json) => search_endpoints(json, query, options~)
+    Err(err) => Err(err)
+  }
+}
+
+///|
+pub fn search_endpoints(
+  document : Json,
+  query : String,
+  options~ : EndpointSearchOptions,
+) -> Result[Array[EndpointSearchResult], ApispecError] {
+  match @search.validate_search_input(query, options.limit) {
+    Err(err) => Err(err)
+    Ok(query) =>
+      match
+        list_endpoints(
+          document,
+          options=endpoint_list_options(options.tag, options.http_method),
+        ) {
+        Err(err) => Err(err)
+        Ok(endpoints) =>
+          Ok(score_endpoint_results(endpoints, query, options.limit))
+      }
+  }
+}
+
+///|
 fn score_endpoint_results(
   endpoints : Array[EndpointSummary],
   query : String,

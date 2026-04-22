@@ -3,11 +3,11 @@ fn resolve_endpoint_search_format(
   matches : @argparse.Matches,
 ) -> Result[@lib.EndpointSearchFormat, @lib.ApispecError] {
   if matches.flags.get_or_default("quiet", false) {
-    Ok(@lib.EndpointSearchQuiet)
+    Ok(@lib.EndpointSearchFormat::EndpointSearchQuiet)
   } else {
     match option_value(matches, "format").unwrap_or("json") {
-      "json" => Ok(@lib.EndpointSearchJsonLines)
-      "md" => Ok(@lib.EndpointSearchMarkdown)
+      "json" => Ok(@lib.EndpointSearchFormat::EndpointSearchJsonLines)
+      "md" => Ok(@lib.EndpointSearchFormat::EndpointSearchMarkdown)
       value =>
         Err(@lib.ApispecError::UsageError("unsupported format: \{value}"))
     }
@@ -35,11 +35,11 @@ fn resolve_list_format(
   matches : @argparse.Matches,
 ) -> Result[@lib.EndpointListFormat, @lib.ApispecError] {
   if matches.flags.get_or_default("quiet", false) {
-    Ok(@lib.Quiet)
+    Ok(@lib.EndpointListFormat::Quiet)
   } else {
     match option_value(matches, "format").unwrap_or("json") {
-      "json" => Ok(@lib.JsonLines)
-      "md" => Ok(@lib.Markdown)
+      "json" => Ok(@lib.EndpointListFormat::JsonLines)
+      "md" => Ok(@lib.EndpointListFormat::Markdown)
       value =>
         Err(@lib.ApispecError::UsageError("unsupported format: \{value}"))
     }
@@ -51,8 +51,8 @@ fn resolve_get_format(
   matches : @argparse.Matches,
 ) -> Result[@lib.EndpointGetFormat, @lib.ApispecError] {
   match option_value(matches, "format").unwrap_or("json") {
-    "json" => Ok(@lib.EndpointGetJson)
-    "md" => Ok(@lib.EndpointGetMarkdown)
+    "json" => Ok(@lib.EndpointGetFormat::EndpointGetJson)
+    "md" => Ok(@lib.EndpointGetFormat::EndpointGetMarkdown)
     value => Err(@lib.ApispecError::UsageError("unsupported format: \{value}"))
   }
 }

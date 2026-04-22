@@ -119,7 +119,7 @@ fn schema_subset_to_markdown(subset : SchemaSubset) -> String {
       buf.write_string("- none\n")
     } else {
       for usage in usages {
-        buf.write_string(endpoint_to_markdown_line(usage) + "\n")
+        buf.write_string(@endpoint.endpoint_to_markdown_line(usage) + "\n")
       }
     }
   }

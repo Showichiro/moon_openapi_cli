@@ -27,7 +27,7 @@ pub fn format_endpoint_list(
 }
 
 ///|
-fn endpoint_to_markdown_line(endpoint : EndpointSummary) -> String {
+pub fn endpoint_to_markdown_line(endpoint : EndpointSummary) -> String {
   let base = "- \{endpoint.http_method} \{endpoint.path} \{endpoint.operation_id}"
   match endpoint.summary {
     Some(summary) => "\{base} - \{summary}"

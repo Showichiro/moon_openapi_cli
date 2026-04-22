@@ -1,8 +1,26 @@
 ///|
+using @errors {type ApispecError}
+
+///|
 pub struct SearchTerms {
   phrase : String
   tokens : Array[String]
   groups : Array[Array[String]]
+}
+
+///|
+pub fn validate_search_input(
+  query : String,
+  limit : Int,
+) -> Result[String, ApispecError] {
+  let query = query.trim().to_string()
+  if query.is_empty() {
+    Err(ApispecError::UsageError("expected non-empty search query"))
+  } else if limit <= 0 {
+    Err(ApispecError::UsageError("limit must be greater than 0"))
+  } else {
+    Ok(query)
+  }
 }
 
 ///|

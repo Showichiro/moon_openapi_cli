@@ -1,7 +1,6 @@
 ///|
-priv struct OperationCandidate {
-  endpoint : EndpointSummary
-  operation : Json
+pub fn endpoint_get_options(no_resolve : Bool) -> EndpointGetOptions {
+  { no_resolve, }
 }
 
 ///|
@@ -69,36 +68,6 @@ fn get_endpoint_normalized(
       }
     _ => Err(ParseError("expected JSON object input"))
   }
-}
-
-///|
-fn collect_operation_candidates(
-  paths : Map[String, Json],
-) -> Array[OperationCandidate] {
-  let candidates : Array[OperationCandidate] = []
-  for path, path_item in paths {
-    if path_item is Object(path_item_obj) {
-      for method_name, operation_json in path_item_obj {
-        let http_method = method_name.to_upper()
-        if @http_method.is_http_method(http_method) {
-          if operation_json is Object(operation) {
-            if build_endpoint(path, http_method, operation) is Some(endpoint) {
-              candidates.push({ endpoint, operation: operation_json })
-            }
-          }
-        }
-      }
-    }
-  }
-  sort_operation_candidates(candidates)
-  candidates
-}
-
-///|
-fn sort_operation_candidates(candidates : Array[OperationCandidate]) -> Unit {
-  candidates.sort_by((left, right) => {
-    compare_endpoints(left.endpoint, right.endpoint)
-  })
 }
 
 ///|

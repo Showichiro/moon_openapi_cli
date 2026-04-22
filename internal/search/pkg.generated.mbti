@@ -1,6 +1,10 @@
 // Generated using `moon info`, DON'T EDIT IT
 package "Showichiro/moon_openapi_cli/internal/search"
 
+import {
+  "Showichiro/moon_openapi_cli/internal/error",
+}
+
 // Values
 pub fn build_search_terms(String) -> SearchTerms
 
@@ -9,6 +13,8 @@ pub fn count_matched_groups(Array[String], SearchTerms) -> Int
 pub fn coverage_bonus(SearchTerms, Int) -> Int
 
 pub fn score_field(String, SearchTerms, String, Array[String], exact~ : Int, phrase~ : Int, token~ : Int) -> Int
+
+pub fn validate_search_input(String, Int) -> Result[String, @error.ApispecError]
 
 // Errors
 

@@ -3,6 +3,7 @@ package "Showichiro/moon_openapi_cli"
 
 import {
   "Showichiro/moon_openapi_cli/internal/describe",
+  "Showichiro/moon_openapi_cli/internal/endpoint",
   "Showichiro/moon_openapi_cli/internal/error",
   "moonbitlang/core/debug",
 }
@@ -14,21 +15,21 @@ pub fn describe_command_names() -> Array[String]
 
 pub fn describe_commands() -> Array[@describe.CommandDescriptor]
 
-pub fn endpoint_get_options(Bool) -> EndpointGetOptions
+pub fn endpoint_get_options(Bool) -> @endpoint.EndpointGetOptions
 
-pub fn endpoint_list_options(String?, String?) -> EndpointListOptions
+pub fn endpoint_list_options(String?, String?) -> @endpoint.EndpointListOptions
 
-pub fn endpoint_search_options(String?, String?, Int) -> EndpointSearchOptions
+pub fn endpoint_search_options(String?, String?, Int) -> @endpoint.EndpointSearchOptions
 
 pub fn format_command_descriptor(@describe.CommandDescriptor) -> String
 
 pub fn format_command_descriptors(Array[@describe.CommandDescriptor]) -> String
 
-pub fn format_endpoint_list(Array[EndpointSummary], EndpointListFormat) -> String
+pub fn format_endpoint_list(Array[@endpoint.EndpointSummary], @endpoint.EndpointListFormat) -> String
 
-pub fn format_endpoint_search_results(Array[EndpointSearchResult], EndpointSearchFormat) -> String
+pub fn format_endpoint_search_results(Array[@endpoint.EndpointSearchResult], @endpoint.EndpointSearchFormat) -> String
 
-pub fn format_endpoint_subset(EndpointSubset, EndpointGetFormat) -> String
+pub fn format_endpoint_subset(@endpoint.EndpointSubset, @endpoint.EndpointGetFormat) -> String
 
 pub fn format_schema_list(Array[SchemaSummary], SchemaListFormat) -> String
 
@@ -36,17 +37,17 @@ pub fn format_schema_search_results(Array[SchemaSearchResult], SchemaSearchForma
 
 pub fn format_schema_subset(SchemaSubset, SchemaGetFormat) -> String
 
-pub fn get_endpoint(Json, String, options~ : EndpointGetOptions) -> Result[EndpointSubset, @error.ApispecError]
+pub fn get_endpoint(Json, String, options~ : @endpoint.EndpointGetOptions) -> Result[@endpoint.EndpointSubset, @error.ApispecError]
 
-pub fn get_endpoint_from_source(String, String, options~ : EndpointGetOptions) -> Result[EndpointSubset, @error.ApispecError]
+pub fn get_endpoint_from_source(String, String, options~ : @endpoint.EndpointGetOptions) -> Result[@endpoint.EndpointSubset, @error.ApispecError]
 
 pub fn get_schema(Json, String, options~ : SchemaGetOptions) -> Result[SchemaSubset, @error.ApispecError]
 
 pub fn get_schema_from_source(String, String, options~ : SchemaGetOptions) -> Result[SchemaSubset, @error.ApispecError]
 
-pub fn list_endpoints(Json, options~ : EndpointListOptions) -> Result[Array[EndpointSummary], @error.ApispecError]
+pub fn list_endpoints(Json, options~ : @endpoint.EndpointListOptions) -> Result[Array[@endpoint.EndpointSummary], @error.ApispecError]
 
-pub fn list_endpoints_from_source(String, options~ : EndpointListOptions) -> Result[Array[EndpointSummary], @error.ApispecError]
+pub fn list_endpoints_from_source(String, options~ : @endpoint.EndpointListOptions) -> Result[Array[@endpoint.EndpointSummary], @error.ApispecError]
 
 pub fn list_schemas(Json) -> Result[Array[SchemaSummary], @error.ApispecError]
 
@@ -56,9 +57,9 @@ pub fn schema_get_options(Bool) -> SchemaGetOptions
 
 pub fn schema_search_options(Int) -> SchemaSearchOptions
 
-pub fn search_endpoints(Json, String, options~ : EndpointSearchOptions) -> Result[Array[EndpointSearchResult], @error.ApispecError]
+pub fn search_endpoints(Json, String, options~ : @endpoint.EndpointSearchOptions) -> Result[Array[@endpoint.EndpointSearchResult], @error.ApispecError]
 
-pub fn search_endpoints_from_source(String, String, options~ : EndpointSearchOptions) -> Result[Array[EndpointSearchResult], @error.ApispecError]
+pub fn search_endpoints_from_source(String, String, options~ : @endpoint.EndpointSearchOptions) -> Result[Array[@endpoint.EndpointSearchResult], @error.ApispecError]
 
 pub fn search_schemas(Json, String, options~ : SchemaSearchOptions) -> Result[Array[SchemaSearchResult], @error.ApispecError]
 
@@ -67,68 +68,6 @@ pub fn search_schemas_from_source(String, String, options~ : SchemaSearchOptions
 // Errors
 
 // Types and methods
-pub(all) enum EndpointGetFormat {
-  EndpointGetJson
-  EndpointGetMarkdown
-} derive(Eq, @debug.Debug)
-
-pub(all) struct EndpointGetOptions {
-  no_resolve : Bool
-} derive(Eq, @debug.Debug)
-
-pub(all) enum EndpointListFormat {
-  JsonLines
-  Markdown
-  Quiet
-} derive(Eq, @debug.Debug)
-
-pub(all) struct EndpointListOptions {
-  tag : String?
-  http_method : String?
-} derive(Eq, @debug.Debug)
-
-pub(all) enum EndpointSearchFormat {
-  EndpointSearchJsonLines
-  EndpointSearchMarkdown
-  EndpointSearchQuiet
-} derive(Eq, @debug.Debug)
-
-pub(all) struct EndpointSearchOptions {
-  tag : String?
-  http_method : String?
-  limit : Int
-} derive(Eq, @debug.Debug)
-
-pub(all) struct EndpointSearchResult {
-  operation_id : String
-  target : String
-  http_method : String
-  path : String
-  tags : Array[String]
-  summary : String?
-  score : Int
-  matched_fields : Array[String]
-} derive(Eq, @debug.Debug)
-pub fn EndpointSearchResult::to_json(Self) -> Json
-
-pub(all) struct EndpointSubset {
-  openapi_version : String
-  endpoint : EndpointSummary
-  operation : Json
-  components : Json?
-  warnings : Array[String]
-} derive(Eq, @debug.Debug)
-pub fn EndpointSubset::to_json(Self) -> Json
-
-pub(all) struct EndpointSummary {
-  operation_id : String
-  http_method : String
-  path : String
-  tags : Array[String]
-  summary : String?
-} derive(Eq, @debug.Debug)
-pub fn EndpointSummary::to_json(Self) -> Json
-
 pub(all) enum SchemaGetFormat {
   SchemaGetJson
   SchemaGetMarkdown
@@ -168,7 +107,7 @@ pub(all) struct SchemaSubset {
   name : String
   schema : Json
   components : Json?
-  usages : Array[EndpointSummary]?
+  usages : Array[@endpoint.EndpointSummary]?
   warnings : Array[String]
 } derive(Eq, @debug.Debug)
 pub fn SchemaSubset::to_json(Self) -> Json
@@ -184,6 +123,24 @@ pub fn SchemaSummary::to_json(Self) -> Json
 pub using @error {type ApispecError}
 
 pub using @describe {type CommandDescriptor}
+
+pub using @endpoint {type EndpointGetFormat}
+
+pub using @endpoint {type EndpointGetOptions}
+
+pub using @endpoint {type EndpointListFormat}
+
+pub using @endpoint {type EndpointListOptions}
+
+pub using @endpoint {type EndpointSearchFormat}
+
+pub using @endpoint {type EndpointSearchOptions}
+
+pub using @endpoint {type EndpointSearchResult}
+
+pub using @endpoint {type EndpointSubset}
+
+pub using @endpoint {type EndpointSummary}
 
 // Traits
 
