@@ -247,10 +247,7 @@ fn describe(matches : @argparse.Matches) -> Unit {
 async fn endpoint_ls(matches : @argparse.Matches) -> Unit {
   let trace = new_verbose_trace(matches)
   let file = option_value(matches, "file").unwrap_or("-")
-  let load_start = trace_now_ms()
-  let content_result = read_input(file)
-  let load_end = trace_now_ms()
-  write_trace_phase(trace, "load", load_start, load_end)
+  let content_result = read_input_with_trace(trace, file)
   match content_result {
     Err(message) => {
       write_trace_total(trace)
@@ -282,11 +279,7 @@ async fn endpoint_ls(matches : @argparse.Matches) -> Unit {
               let output = @lib.format_endpoint_list(endpoints, format)
               write_trace_phase(trace, "format", format_start, trace_now_ms())
               write_trace_total(trace)
-              if output.is_empty() {
-                exit_success("")
-              } else {
-                exit_success(output + "\n")
-              }
+              exit_success_output(output)
             }
           }
         }
@@ -306,10 +299,7 @@ async fn endpoint_get(matches : @argparse.Matches) -> Unit {
     }
     Ok(target) => {
       let file = option_value(matches, "file").unwrap_or("-")
-      let load_start = trace_now_ms()
-      let content_result = read_input(file)
-      let load_end = trace_now_ms()
-      write_trace_phase(trace, "load", load_start, load_end)
+      let content_result = read_input_with_trace(trace, file)
       match content_result {
         Err(message) => {
           write_trace_total(trace)
@@ -361,11 +351,7 @@ async fn endpoint_get(matches : @argparse.Matches) -> Unit {
                         trace_now_ms(),
                       )
                       write_trace_total(trace)
-                      if output.is_empty() {
-                        exit_success("")
-                      } else {
-                        exit_success(output + "\n")
-                      }
+                      exit_success_output(output)
                     }
                   }
                 }
@@ -396,10 +382,7 @@ async fn endpoint_search(matches : @argparse.Matches) -> Unit {
         }
         Ok(limit) => {
           let file = option_value(matches, "file").unwrap_or("-")
-          let load_start = trace_now_ms()
-          let content_result = read_input(file)
-          let load_end = trace_now_ms()
-          write_trace_phase(trace, "load", load_start, load_end)
+          let content_result = read_input_with_trace(trace, file)
           match content_result {
             Err(message) => {
               write_trace_total(trace)
@@ -455,11 +438,7 @@ async fn endpoint_search(matches : @argparse.Matches) -> Unit {
                         trace_now_ms(),
                       )
                       write_trace_total(trace)
-                      if output.is_empty() {
-                        exit_success("")
-                      } else {
-                        exit_success(output + "\n")
-                      }
+                      exit_success_output(output)
                     }
                   }
                 }
@@ -476,10 +455,7 @@ async fn endpoint_search(matches : @argparse.Matches) -> Unit {
 async fn schema_ls(matches : @argparse.Matches) -> Unit {
   let trace = new_verbose_trace(matches)
   let file = option_value(matches, "file").unwrap_or("-")
-  let load_start = trace_now_ms()
-  let content_result = read_input(file)
-  let load_end = trace_now_ms()
-  write_trace_phase(trace, "load", load_start, load_end)
+  let content_result = read_input_with_trace(trace, file)
   match content_result {
     Err(message) => {
       write_trace_total(trace)
@@ -507,11 +483,7 @@ async fn schema_ls(matches : @argparse.Matches) -> Unit {
               let output = @lib.format_schema_list(schemas, format)
               write_trace_phase(trace, "format", format_start, trace_now_ms())
               write_trace_total(trace)
-              if output.is_empty() {
-                exit_success("")
-              } else {
-                exit_success(output + "\n")
-              }
+              exit_success_output(output)
             }
           }
         }
@@ -531,10 +503,7 @@ async fn schema_get(matches : @argparse.Matches) -> Unit {
     }
     Ok(name) => {
       let file = option_value(matches, "file").unwrap_or("-")
-      let load_start = trace_now_ms()
-      let content_result = read_input(file)
-      let load_end = trace_now_ms()
-      write_trace_phase(trace, "load", load_start, load_end)
+      let content_result = read_input_with_trace(trace, file)
       match content_result {
         Err(message) => {
           write_trace_total(trace)
@@ -586,11 +555,7 @@ async fn schema_get(matches : @argparse.Matches) -> Unit {
                         trace_now_ms(),
                       )
                       write_trace_total(trace)
-                      if output.is_empty() {
-                        exit_success("")
-                      } else {
-                        exit_success(output + "\n")
-                      }
+                      exit_success_output(output)
                     }
                   }
                 }
@@ -621,10 +586,7 @@ async fn schema_search(matches : @argparse.Matches) -> Unit {
         }
         Ok(limit) => {
           let file = option_value(matches, "file").unwrap_or("-")
-          let load_start = trace_now_ms()
-          let content_result = read_input(file)
-          let load_end = trace_now_ms()
-          write_trace_phase(trace, "load", load_start, load_end)
+          let content_result = read_input_with_trace(trace, file)
           match content_result {
             Err(message) => {
               write_trace_total(trace)
@@ -675,11 +637,7 @@ async fn schema_search(matches : @argparse.Matches) -> Unit {
                         trace_now_ms(),
                       )
                       write_trace_total(trace)
-                      if output.is_empty() {
-                        exit_success("")
-                      } else {
-                        exit_success(output + "\n")
-                      }
+                      exit_success_output(output)
                     }
                   }
                 }
@@ -967,6 +925,15 @@ fn exit_success(output : String) -> Unit {
 }
 
 ///|
+fn exit_success_output(output : String) -> Unit {
+  if output.is_empty() {
+    exit_success("")
+  } else {
+    exit_success(output + "\n")
+  }
+}
+
+///|
 enum InputSource {
   Stdin
   LocalFile(String)
@@ -986,6 +953,18 @@ fn classify_input_source(source : String) -> InputSource {
       None => LocalFile(source)
     }
   }
+}
+
+///|
+async fn read_input_with_trace(
+  trace : VerboseTrace,
+  source : String,
+) -> Result[String, String] {
+  let load_start = trace_now_ms()
+  let result = read_input(source)
+  let load_end = trace_now_ms()
+  write_trace_phase(trace, "load", load_start, load_end)
+  result
 }
 
 ///|

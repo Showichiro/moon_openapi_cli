@@ -10,15 +10,9 @@ pub fn get_endpoint_from_source(
   target : String,
   options~ : EndpointGetOptions,
 ) -> Result[EndpointSubset, ApispecError] {
-  let trimmed = source.trim_start()
-  if !trimmed.has_prefix("{") {
-    Err(ParseError("expected JSON object input"))
-  } else {
-    let parsed : Result[Json, _] = try? @json.parse(source)
-    match parsed {
-      Ok(json) => get_endpoint(json, target, options~)
-      Err(err) => Err(ParseError(err.to_string()))
-    }
+  match parse_json_object_source(source) {
+    Ok(json) => get_endpoint(json, target, options~)
+    Err(err) => Err(err)
   }
 }
 
@@ -108,18 +102,7 @@ fn collect_operation_candidates(
 ///|
 fn sort_operation_candidates(candidates : Array[OperationCandidate]) -> Unit {
   candidates.sort_by((left, right) => {
-    let path_cmp = left.endpoint.path.lexical_compare(right.endpoint.path)
-    if path_cmp != 0 {
-      path_cmp
-    } else {
-      let method_cmp = method_rank(left.endpoint.http_method) -
-        method_rank(right.endpoint.http_method)
-      if method_cmp != 0 {
-        method_cmp
-      } else {
-        left.endpoint.operation_id.lexical_compare(right.endpoint.operation_id)
-      }
-    }
+    compare_endpoints(left.endpoint, right.endpoint)
   })
 }
 

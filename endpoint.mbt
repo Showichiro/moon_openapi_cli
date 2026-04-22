@@ -40,15 +40,9 @@ pub fn list_endpoints_from_source(
   source : String,
   options~ : EndpointListOptions,
 ) -> Result[Array[EndpointSummary], ApispecError] {
-  let trimmed = source.trim_start()
-  if !trimmed.has_prefix("{") {
-    Err(ParseError("expected JSON object input"))
-  } else {
-    let parsed : Result[Json, _] = try? @json.parse(source)
-    match parsed {
-      Ok(json) => list_endpoints(json, options~)
-      Err(err) => Err(ParseError(err.to_string()))
-    }
+  match parse_json_object_source(source) {
+    Ok(json) => list_endpoints(json, options~)
+    Err(err) => Err(err)
   }
 }
 
@@ -193,19 +187,22 @@ fn method_rank(http_method : String) -> Int {
 }
 
 ///|
-fn sort_endpoints(endpoints : Array[EndpointSummary]) -> Unit {
-  endpoints.sort_by((left, right) => {
-    let path_cmp = left.path.lexical_compare(right.path)
-    if path_cmp != 0 {
-      path_cmp
+fn compare_endpoints(left : EndpointSummary, right : EndpointSummary) -> Int {
+  let path_cmp = left.path.lexical_compare(right.path)
+  if path_cmp != 0 {
+    path_cmp
+  } else {
+    let method_cmp = method_rank(left.http_method) -
+      method_rank(right.http_method)
+    if method_cmp != 0 {
+      method_cmp
     } else {
-      let method_cmp = method_rank(left.http_method) -
-        method_rank(right.http_method)
-      if method_cmp != 0 {
-        method_cmp
-      } else {
-        left.operation_id.lexical_compare(right.operation_id)
-      }
+      left.operation_id.lexical_compare(right.operation_id)
     }
-  })
+  }
+}
+
+///|
+fn sort_endpoints(endpoints : Array[EndpointSummary]) -> Unit {
+  endpoints.sort_by(compare_endpoints)
 }

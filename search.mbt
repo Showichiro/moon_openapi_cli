@@ -18,15 +18,9 @@ pub fn search_endpoints_from_source(
   query : String,
   options~ : EndpointSearchOptions,
 ) -> Result[Array[EndpointSearchResult], ApispecError] {
-  let trimmed = source.trim_start()
-  if !trimmed.has_prefix("{") {
-    Err(ParseError("expected JSON object input"))
-  } else {
-    let parsed : Result[Json, _] = try? @json.parse(source)
-    match parsed {
-      Ok(json) => search_endpoints(json, query, options~)
-      Err(err) => Err(ParseError(err.to_string()))
-    }
+  match parse_json_object_source(source) {
+    Ok(json) => search_endpoints(json, query, options~)
+    Err(err) => Err(err)
   }
 }
 
@@ -57,15 +51,9 @@ pub fn search_schemas_from_source(
   query : String,
   options~ : SchemaSearchOptions,
 ) -> Result[Array[SchemaSearchResult], ApispecError] {
-  let trimmed = source.trim_start()
-  if !trimmed.has_prefix("{") {
-    Err(ParseError("expected JSON object input"))
-  } else {
-    let parsed : Result[Json, _] = try? @json.parse(source)
-    match parsed {
-      Ok(json) => search_schemas(json, query, options~)
-      Err(err) => Err(ParseError(err.to_string()))
-    }
+  match parse_json_object_source(source) {
+    Ok(json) => search_schemas(json, query, options~)
+    Err(err) => Err(err)
   }
 }
 

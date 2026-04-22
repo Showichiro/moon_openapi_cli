@@ -7,15 +7,9 @@ pub fn schema_get_options(with_usages : Bool) -> SchemaGetOptions {
 pub fn list_schemas_from_source(
   source : String,
 ) -> Result[Array[SchemaSummary], ApispecError] {
-  let trimmed = source.trim_start()
-  if !trimmed.has_prefix("{") {
-    Err(ParseError("expected JSON object input"))
-  } else {
-    let parsed : Result[Json, _] = try? @json.parse(source)
-    match parsed {
-      Ok(json) => list_schemas(json)
-      Err(err) => Err(ParseError(err.to_string()))
-    }
+  match parse_json_object_source(source) {
+    Ok(json) => list_schemas(json)
+    Err(err) => Err(err)
   }
 }
 
@@ -49,15 +43,9 @@ pub fn get_schema_from_source(
   name : String,
   options~ : SchemaGetOptions,
 ) -> Result[SchemaSubset, ApispecError] {
-  let trimmed = source.trim_start()
-  if !trimmed.has_prefix("{") {
-    Err(ParseError("expected JSON object input"))
-  } else {
-    let parsed : Result[Json, _] = try? @json.parse(source)
-    match parsed {
-      Ok(json) => get_schema(json, name, options~)
-      Err(err) => Err(ParseError(err.to_string()))
-    }
+  match parse_json_object_source(source) {
+    Ok(json) => get_schema(json, name, options~)
+    Err(err) => Err(err)
   }
 }
 
