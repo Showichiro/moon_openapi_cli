@@ -109,9 +109,9 @@ pub fn format_schema_subset(
 fn schema_subset_to_markdown(subset : SchemaSubset) -> String {
   let buf = StringBuilder::new()
   buf.write_string("## \{subset.name}\n")
-  write_json_section(buf, "Schema", subset.schema)
+  @markdown.write_json_section(buf, "Schema", subset.schema)
   if subset.components is Some(components) {
-    write_json_section(buf, "Components", components)
+    @markdown.write_json_section(buf, "Components", components)
   }
   if subset.usages is Some(usages) {
     buf.write_string("\n### Usages\n\n")

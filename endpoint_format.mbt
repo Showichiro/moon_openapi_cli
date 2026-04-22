@@ -120,21 +120,23 @@ fn endpoint_subset_to_markdown(subset : EndpointSubset) -> String {
   }
   if subset.operation is Object(operation) {
     match operation.get("parameters") {
-      Some(parameters) => write_json_section(buf, "Parameters", parameters)
+      Some(parameters) =>
+        @markdown.write_json_section(buf, "Parameters", parameters)
       None => ()
     }
     match operation.get("requestBody") {
       Some(request_body) =>
-        write_json_section(buf, "Request Body", request_body)
+        @markdown.write_json_section(buf, "Request Body", request_body)
       None => ()
     }
     match operation.get("responses") {
-      Some(responses) => write_json_section(buf, "Responses", responses)
+      Some(responses) =>
+        @markdown.write_json_section(buf, "Responses", responses)
       None => ()
     }
   }
   if subset.components is Some(components) {
-    write_json_section(buf, "Components", components)
+    @markdown.write_json_section(buf, "Components", components)
   }
   buf.to_string()
 }

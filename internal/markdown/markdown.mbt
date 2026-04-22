@@ -1,5 +1,5 @@
 ///|
-fn write_json_section(
+pub fn write_json_section(
   buf : StringBuilder,
   title : String,
   value : Json,
