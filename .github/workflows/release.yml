@@ -9,7 +9,39 @@ permissions:
   contents: write
 
 jobs:
+  verify-version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Verify release version metadata
+        run: |
+          expected_version="${GITHUB_REF_NAME#v}"
+          cli_source_version="$(
+            sed -n 's/^const VERSION : String = "\(.*\)"$/\1/p' cmd/main/main.mbt
+          )"
+          module_version="$(
+            python3 -c 'import json; print(json.load(open("moon.mod.json"))["version"])'
+          )"
+
+          if [ -z "$cli_source_version" ]; then
+            echo "cmd/main/main.mbt VERSION was not found" >&2
+            exit 1
+          fi
+
+          if [ "$cli_source_version" != "$expected_version" ]; then
+            echo "cmd/main/main.mbt VERSION is ${cli_source_version}, expected ${expected_version}" >&2
+            exit 1
+          fi
+
+          if [ "$module_version" != "$expected_version" ]; then
+            echo "moon.mod.json version is ${module_version}, expected ${expected_version}" >&2
+            exit 1
+          fi
+
   create-release:
+    needs: verify-version
     runs-on: ubuntu-latest
     steps:
       - name: Create release if needed
@@ -50,12 +82,18 @@ jobs:
 
       - name: Build binary
         run: |
+          expected_version="${GITHUB_REF_NAME#v}"
           moon build cmd/main --target native --release --strip
           mkdir -p dist
           asset="apispec-${GITHUB_REF_NAME}-${{ matrix.os }}-${{ matrix.arch }}"
           cp _build/native/release/build/cmd/main/main.exe "dist/${asset}"
           chmod +x "dist/${asset}"
-          "dist/${asset}" version
+          actual_version="$("dist/${asset}" version)"
+          if [ "$actual_version" != "$expected_version" ]; then
+            echo "built binary version is ${actual_version}, expected ${expected_version}" >&2
+            exit 1
+          fi
+          echo "$actual_version"
 
       - name: Upload release asset
         env:
